@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import TaskTable, { getLocalToday } from './components/TaskTable';
-import SmartTaskInput from './components/SmartTaskInput';
-import SortPopup from './components/SortPopup';
-import KanbanBoard from './components/KanbanBoard';
-import FitnessBoard from './components/FitnessBoard';
-import AnalyticsDashboard from './components/AnalyticsDashboard';
-import ZoraAssistant from './components/ZoraAssistant';
-import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
+import TaskTable, { getLocalToday } from './components/TaskTable.tsx';
+import SmartTaskInput from './components/SmartTaskInput.tsx';
+import SortPopup from './components/SortPopup.tsx';
+import KanbanBoard from './components/KanbanBoard.tsx';
+import FitnessBoard from './components/FitnessBoard.tsx';
+import AnalyticsDashboard from './components/AnalyticsDashboard.tsx';
+import ZoraAssistant from './components/ZoraAssistant.tsx';
+import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types.ts';
 import { 
   IconCheckSquare, 
   IconList, 
@@ -20,23 +20,19 @@ import {
   IconBarChart,
   IconSparkles,
   IconCalendar
-} from './components/Icons';
+} from './components/Icons.tsx';
 
-// Helper function to get initial tasks
-const getInitialTasks = (): Task[] => {
-  const today = getLocalToday();
-  return [
-    { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: today, lastCompleted: null, streak: 0 },
-    { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, lastCompleted: null, streak: 0 },
-    { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: today, lastCompleted: null, streak: 0, category: FitnessCategory.ABS, reps: '5 mins', isHomeWorkout: true },
-    { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: today, lastCompleted: null, streak: 0, category: FitnessCategory.GROCERY },
-  ];
-};
+const INITIAL_TASKS: Task[] = [
+  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0 },
+  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0 },
+  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.ABS, reps: '5 mins', isHomeWorkout: true },
+  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.GROCERY },
+];
 
 const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(() => {
     const saved = localStorage.getItem('notion-tasks');
-    return saved ? JSON.parse(saved) : getInitialTasks();
+    return saved ? JSON.parse(saved) : INITIAL_TASKS;
   });
   
   const [view, setView] = useState<ViewType>('All Tasks');
@@ -91,18 +87,18 @@ const App: React.FC = () => {
         {view === 'All Tasks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
-              <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400"><IconCalendar className="w-6 h-6" /></div>
-              <div>
-                <div className="text-xl font-bold text-white">{tasksDueToday.length} Tasks Remaining</div>
-                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Due Today: {today}</div>
-              </div>
+               <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400"><IconCalendar className="w-6 h-6" /></div>
+               <div>
+                 <div className="text-xl font-bold text-white">{tasksDueToday.length} Tasks Remaining</div>
+                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Due Today: {today}</div>
+               </div>
             </div>
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
-              <div className="bg-orange-500/10 p-3 rounded-lg text-orange-400"><IconSparkles className="w-6 h-6" /></div>
-              <div>
-                <div className="text-xl font-bold text-white">{bestStreak} Day Streak</div>
-                <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Your best consistency score</div>
-              </div>
+               <div className="bg-orange-500/10 p-3 rounded-lg text-orange-400"><IconSparkles className="w-6 h-6" /></div>
+               <div>
+                 <div className="text-xl font-bold text-white">{bestStreak} Day Streak</div>
+                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Your best consistency score</div>
+               </div>
             </div>
           </div>
         )}
@@ -129,6 +125,7 @@ const App: React.FC = () => {
               <IconSearch className="w-4 h-4 text-notion-muted absolute left-2 top-1/2 -translate-y-1/2" />
               <input type="text" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border border-transparent hover:border-notion-border focus:border-blue-500 rounded px-2 py-1 pl-8 text-sm outline-none w-48 transition-colors" />
             </div>
+
             <div className="relative">
               <button 
                 onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
@@ -145,6 +142,7 @@ const App: React.FC = () => {
                 />
               )}
             </div>
+
             <button onClick={() => { setSearch(''); setSortConfig([]); }} className="text-notion-muted hover:bg-notion-hover px-2 py-1 rounded text-sm flex items-center gap-2">
               <IconRotateCcw className="w-4 h-4" /> 
               Reset
@@ -156,13 +154,13 @@ const App: React.FC = () => {
 
       <main className="px-12">
         {view === 'By Status' ? (
-          <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} onDeleteTask={handleDeleteTask} />
+           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Fitness' ? (
-          <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'Workout', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat })} onDeleteTask={handleDeleteTask} />
+           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'Workout', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
-          <AnalyticsDashboard tasks={tasks} />
+            <AnalyticsDashboard tasks={tasks} />
         ) : (
-          <TaskTable tasks={filteredTasks} onUpdateTask={handleUpdateTask} sortConfig={sortConfig} onSortChange={setSortConfig} onDeleteTask={handleDeleteTask} onAddTask={(s, title) => handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} />
+           <TaskTable tasks={filteredTasks} onUpdateTask={handleUpdateTask} sortConfig={sortConfig} onSortChange={setSortConfig} onDeleteTask={handleDeleteTask} onAddTask={(s, title) => handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} />
         )}
       </main>
 

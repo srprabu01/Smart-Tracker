@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Task, Status, Priority, Frequency } from '../types';
-import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue } from './TaskTable';
-import { IconTrash } from './Icons';
+import { Task, Status, Priority, Frequency } from '../types.ts';
+import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue } from './TaskTable.tsx';
+import { IconTrash } from './Icons.tsx';
 
 interface KanbanColumnProps {
   title: string; 

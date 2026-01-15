@@ -1,8 +1,7 @@
-
 import React, { useState, useRef } from 'react';
-import { IconSparkles, IconPlus, IconWaveform } from './Icons';
-import { parseTaskFromInput, transcribeAudio } from '../services/geminiService';
-import { Task } from '../types';
+import { IconSparkles, IconPlus, IconWaveform } from './Icons.tsx';
+import { parseTaskFromInput, transcribeAudio } from '../services/geminiService.ts';
+import { Task } from '../types.ts';
 
 interface SmartTaskInputProps {
   onAddTask: (task: Omit<Task, 'id' | 'streak' | 'lastCompleted'>) => void;
@@ -28,14 +27,12 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
     setLoading(false);
 
     if (parsed) {
-      // Fix: lastCompleted is omitted from the expected type and added in the parent handleAddTask
       onAddTask({
         ...parsed
       });
       setInput('');
       setIsOpen(false);
     } else {
-        // Fallback if AI fails or network error
         alert("Could not parse task with AI. Please try again or check internet.");
     }
   };
@@ -60,7 +57,6 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
              setInput(prev => (prev ? prev + " " : "") + text.trim());
           }
         };
-        // Stop all tracks
         stream.getTracks().forEach(track => track.stop());
       };
 
