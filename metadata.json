@@ -1,0 +1,7 @@
+{
+  "name": "Notion-style Smart Tracker",
+  "description": "A high-fidelity daily task tracker featuring a dark-mode database UI. Includes Gemini-powered smart task entry to automatically categorize frequency, priority, and dates from natural language.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
