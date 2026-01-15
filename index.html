@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Daily Task Tracker</title>
+    <script>
+      // Robust polyfill for process environment
+      window.process = {
+        env: { NODE_ENV: 'production' },
+        nextTick: (cb) => setTimeout(cb, 0),
+        browser: true
+      };
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -34,7 +42,6 @@
         background-color: #191919;
         color: #d4d4d4;
       }
-      /* Custom scrollbar for Notion-like feel */
       ::-webkit-scrollbar {
         width: 10px;
         height: 10px;
@@ -53,17 +60,17 @@
   <script type="importmap">
 {
   "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/"
+    "react/": "https://aistudiocdn.com/react@19.0.0/",
+    "react": "https://aistudiocdn.com/react@19.0.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@1.31.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@19.0.0/",
+    "react-dom": "https://aistudiocdn.com/react-dom@19.0.0"
   }
 }
 </script>
 </head>
   <body>
     <div id="root"></div>
-    <!-- Explicitly load index.tsx as a module -->
     <script type="module" src="index.tsx"></script>
   </body>
 </html>

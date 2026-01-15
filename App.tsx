@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import TaskTable, { getLocalToday } from './components/TaskTable.tsx';
-import SmartTaskInput from './components/SmartTaskInput.tsx';
-import SortPopup from './components/SortPopup.tsx';
-import KanbanBoard from './components/KanbanBoard.tsx';
-import FitnessBoard from './components/FitnessBoard.tsx';
-import AnalyticsDashboard from './components/AnalyticsDashboard.tsx';
-import ZoraAssistant from './components/ZoraAssistant.tsx';
-import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types.ts';
+import TaskTable, { getLocalToday } from './components/TaskTable';
+import SmartTaskInput from './components/SmartTaskInput';
+import SortPopup from './components/SortPopup';
+import KanbanBoard from './components/KanbanBoard';
+import FitnessBoard from './components/FitnessBoard';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
+import ZoraAssistant from './components/ZoraAssistant';
+import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
 import { 
   IconCheckSquare, 
   IconList, 
@@ -14,13 +14,12 @@ import {
   IconSort, 
   IconLayout,
   IconRotateCcw,
-  IconChevronDown,
   IconShoppingCart,
   IconDumbbell,
   IconBarChart,
   IconSparkles,
   IconCalendar
-} from './components/Icons.tsx';
+} from './components/Icons';
 
 const INITIAL_TASKS: Task[] = [
   { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0 },
@@ -31,8 +30,16 @@ const INITIAL_TASKS: Task[] = [
 
 const App: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>(() => {
-    const saved = localStorage.getItem('notion-tasks');
-    return saved ? JSON.parse(saved) : INITIAL_TASKS;
+    try {
+      const saved = localStorage.getItem('notion-tasks');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse saved tasks:", e);
+    }
+    return INITIAL_TASKS;
   });
   
   const [view, setView] = useState<ViewType>('All Tasks');
@@ -40,7 +47,13 @@ const App: React.FC = () => {
   const [sortConfig, setSortConfig] = useState<SortOption[]>([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
-  useEffect(() => { localStorage.setItem('notion-tasks', JSON.stringify(tasks)); }, [tasks]);
+  useEffect(() => { 
+    try {
+      localStorage.setItem('notion-tasks', JSON.stringify(tasks)); 
+    } catch (e) {
+      console.error("Failed to save tasks to localStorage:", e);
+    }
+  }, [tasks]);
 
   const handleAddTask = (newTaskData: Omit<Task, 'id' | 'streak' | 'lastCompleted'>, customTitle?: string) => {
     const newTask: Task = {
@@ -83,7 +96,6 @@ const App: React.FC = () => {
           <h1 className="text-3xl font-bold text-white">Focus Space</h1>
         </div>
 
-        {/* Dashboard Header Summary */}
         {view === 'All Tasks' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">

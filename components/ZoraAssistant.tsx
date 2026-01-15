@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration, Blob } from '@google/genai';
-import { Task, Status, Priority, Frequency, FitnessCategory } from '../types';
-import { IconMic, IconSparkles } from './Icons';
+import { Task, Status, Priority, Frequency, FitnessCategory } from '../types.ts';
+import { IconMic, IconSparkles } from './Icons.tsx';
 
 interface ZoraAssistantProps {
   tasks: Task[];
@@ -127,12 +127,12 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
     setErrorMsg(null);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      // Ensure we use a fresh GoogleGenAI instance with the latest apiKey
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
-      // Use default hardware rate to avoid NotSupportedError
       const inputCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
       await inputCtx.resume();
       audioContextRef.current = inputCtx;

@@ -1,11 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.tsx';
-
-// Prevent ReferenceError if process is not defined in the environment
-if (typeof (window as any).process === 'undefined') {
-  (window as any).process = { env: {} };
-}
+import App from './App';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

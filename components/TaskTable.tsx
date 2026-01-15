@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, Status, Priority, Frequency, SortOption, FitnessCategory } from '../types';
-import { IconFileText, IconSearch, IconChevronUp, IconChevronDown, IconTrash, IconPlus, IconSort } from './Icons';
+import { IconFileText, IconTrash, IconPlus, IconSort } from './Icons';
 
 export const formatDate = (dateString: string) => {
   if (!dateString) return '';

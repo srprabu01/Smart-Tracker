@@ -1,7 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { Frequency, Priority, Status, Task } from "../types";
+import { Frequency, Priority, Status, Task } from "../types.ts";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+let aiInstance: GoogleGenAI | null = null;
+const getAI = () => {
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  }
+  return aiInstance;
+};
 
 // We return a partial task because ID and Streaks are handled by the app logic
 interface ParsedTaskData {
@@ -16,6 +22,7 @@ interface ParsedTaskData {
 
 export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData | null> => {
   const today = new Date().toISOString().split('T')[0];
+  const ai = getAI();
 
   try {
     const response = await ai.models.generateContent({
@@ -61,6 +68,7 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
 };
 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string | null> => {
+  const ai = getAI();
   try {
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
