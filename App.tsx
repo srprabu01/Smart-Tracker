@@ -22,10 +22,10 @@ import {
 } from './components/Icons';
 
 const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0 },
-  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0 },
-  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.ABS, reps: '5 mins', isHomeWorkout: true },
-  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.GROCERY },
+  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 0 },
+  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 1 },
+  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.ABS, reps: '5 mins', isHomeWorkout: true, order: 2 },
+  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.GROCERY, order: 3 },
 ];
 
 const App: React.FC = () => {
@@ -61,13 +61,20 @@ const App: React.FC = () => {
       title: customTitle || newTaskData.title,
       id: Math.random().toString(36).substr(2, 9),
       streak: 0,
-      lastCompleted: null
+      lastCompleted: null,
+      order: tasks.length // Add to end of manual order
     };
     setTasks(prev => [newTask, ...prev]);
   };
 
   const handleUpdateTask = (updatedTask: Task) => {
     setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  };
+
+  const handleReorderTasks = (reorderedTasks: Task[]) => {
+    // Update the 'order' property based on the new array position
+    const updated = reorderedTasks.map((task, index) => ({ ...task, order: index }));
+    setTasks(updated);
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -79,12 +86,34 @@ const App: React.FC = () => {
   const bestStreak = useMemo(() => Math.max(...tasks.map(t => t.streak), 0), [tasks]);
 
   const filteredTasks = tasks.filter(task => {
-    if (search && !task.title.toLowerCase().includes(search.toLowerCase())) return false;
-    if (view === 'Grocery Run') return task.category === FitnessCategory.GROCERY;
-    if (view === 'Fitness') return [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD].includes(task.category as FitnessCategory);
+    const matchesSearch = !search || task.title.toLowerCase().includes(search.toLowerCase());
+    if (!matchesSearch) return false;
+
+    // Grocery Run is its own separate list
+    if (view === 'Grocery Run') {
+      return task.category === FitnessCategory.GROCERY;
+    }
+
+    // Grocery items should NOT appear in other lists (Fitness or All Tasks)
+    if (task.category === FitnessCategory.GROCERY) return false;
+
+    if (view === 'Fitness') {
+      return [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD].includes(task.category as FitnessCategory);
+    }
+    
     if (view === 'Analytics') return true;
-    return !task.category || task.category === 'None';
+    
+    // For "All Tasks" and "By Status", we show everything except Groceries
+    return true;
   });
+
+  const handleReset = () => {
+    setSearch('');
+    setSortConfig([]);
+    // Restore original creation order (or just clear manual overrides)
+    const resetOrder = [...tasks].sort((a, b) => (a.id > b.id ? 1 : -1));
+    setTasks(resetOrder.map((t, i) => ({ ...t, order: i })));
+  };
 
   return (
     <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40">
@@ -155,12 +184,14 @@ const App: React.FC = () => {
               )}
             </div>
 
-            <button onClick={() => { setSearch(''); setSortConfig([]); }} className="text-notion-muted hover:bg-notion-hover px-2 py-1 rounded text-sm flex items-center gap-2">
+            <button onClick={handleReset} className="text-notion-muted hover:bg-notion-hover px-2 py-1 rounded text-sm flex items-center gap-2">
               <IconRotateCcw className="w-4 h-4" /> 
               Reset
             </button>
           </div>
-          <SmartTaskInput onAddTask={handleAddTask} />
+          <SmartTaskInput 
+            onAddTask={(t) => handleAddTask(view === 'Grocery Run' ? { ...t, category: FitnessCategory.GROCERY } : t)} 
+          />
         </div>
       </header>
 
@@ -172,7 +203,15 @@ const App: React.FC = () => {
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
         ) : (
-           <TaskTable tasks={filteredTasks} onUpdateTask={handleUpdateTask} sortConfig={sortConfig} onSortChange={setSortConfig} onDeleteTask={handleDeleteTask} onAddTask={(s, title) => handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} />
+           <TaskTable 
+             tasks={filteredTasks} 
+             onUpdateTask={handleUpdateTask} 
+             onReorderTasks={handleReorderTasks}
+             sortConfig={sortConfig} 
+             onSortChange={setSortConfig} 
+             onDeleteTask={handleDeleteTask} 
+             onAddTask={(s, title) => handleAddTask(view === 'Grocery Run' ? { title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, category: FitnessCategory.GROCERY } : { title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} 
+           />
         )}
       </main>
 

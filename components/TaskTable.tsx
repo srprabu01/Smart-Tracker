@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task, Status, Priority, Frequency, SortOption, FitnessCategory } from '../types';
-import { IconFileText, IconTrash, IconPlus, IconSort } from './Icons';
+import { IconFileText, IconTrash, IconPlus, IconSort, IconGripVertical } from './Icons';
 
 export const formatDate = (dateString: string) => {
   if (!dateString) return '';
@@ -88,6 +88,7 @@ export const TAG_STYLES: Record<string, string> = {
 interface TaskTableProps {
   tasks: Task[];
   onUpdateTask: (updatedTask: Task) => void;
+  onReorderTasks: (reorderedTasks: Task[]) => void;
   sortConfig: SortOption[];
   onSortChange: (sorts: SortOption[]) => void;
   onDeleteTask: (taskId: string) => void;
@@ -151,25 +152,30 @@ const StatusCell = ({ task, onChange }: { task: Task, onChange: (s: Status) => v
   );
 };
 
-const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, sortConfig, onSortChange, onDeleteTask, onAddTask }) => {
+const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTasks, sortConfig, onSortChange, onDeleteTask, onAddTask }) => {
   const [quickAddTitle, setQuickAddTitle] = useState('');
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const sortedTasks = useMemo(() => {
-    if (sortConfig.length === 0) return tasks;
-    return [...tasks].sort((a, b) => {
-      for (const sort of sortConfig) {
-        const { key, direction } = sort;
-        const valA = a[key]; const valB = b[key];
-        if (valA === valB) continue;
-        let comp = 0;
-        if (key === 'priority') comp = PRIORITY_WEIGHT[valA as Priority] - PRIORITY_WEIGHT[valB as Priority];
-        else if (key === 'status') comp = STATUS_WEIGHT[valA as Status] - STATUS_WEIGHT[valB as Status];
-        else if (typeof valA === 'number') comp = (valA as number) - (valB as number);
-        else comp = String(valA || '').localeCompare(String(valB || ''));
-        if (comp !== 0) return direction === 'asc' ? comp : -comp;
-      }
-      return 0;
-    });
+    // If we have an active sort configuration, we prioritize it
+    if (sortConfig.length > 0) {
+      return [...tasks].sort((a, b) => {
+        for (const sort of sortConfig) {
+          const { key, direction } = sort;
+          const valA = a[key]; const valB = b[key];
+          if (valA === valB) continue;
+          let comp = 0;
+          if (key === 'priority') comp = PRIORITY_WEIGHT[valA as Priority] - PRIORITY_WEIGHT[valB as Priority];
+          else if (key === 'status') comp = STATUS_WEIGHT[valA as Status] - STATUS_WEIGHT[valB as Status];
+          else if (typeof valA === 'number') comp = (valA as number) - (valB as number);
+          else comp = String(valA || '').localeCompare(String(valB || ''));
+          if (comp !== 0) return direction === 'asc' ? comp : -comp;
+        }
+        return 0;
+      });
+    }
+    // Otherwise, use manual order
+    return [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [tasks, sortConfig]);
 
   const handleHeaderClick = (key: keyof Task) => {
@@ -200,15 +206,6 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, sortConfig, 
     onUpdateTask({ ...task, ...updates });
   };
 
-  const handleFrequencyChange = (task: Task, newFrequency: Frequency) => {
-    const today = getLocalToday();
-    let updates: Partial<Task> = { frequency: newFrequency };
-    if (task.nextDue < today) {
-       updates.nextDue = today;
-    }
-    onUpdateTask({ ...task, ...updates });
-  };
-
   const handleQuickAddSubmit = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && quickAddTitle.trim()) {
       onAddTask(Status.TODO, quickAddTitle);
@@ -216,12 +213,38 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, sortConfig, 
     }
   };
 
+  // Drag and Drop Logic
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const onDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+  };
+
+  const onDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+    
+    // Clear any active programmatic sorts when manually reordering
+    onSortChange([]);
+
+    const newTasks = [...sortedTasks];
+    const [draggedItem] = newTasks.splice(draggedIndex, 1);
+    newTasks.splice(index, 0, draggedItem);
+    
+    onReorderTasks(newTasks);
+    setDraggedIndex(null);
+  };
+
   return (
     <div className="overflow-x-auto pb-96 min-h-[600px]">
       <table className="w-full text-left border-collapse min-w-[1000px]">
         <thead>
           <tr className="border-b border-notion-border text-notion-muted">
-            <th onClick={() => handleHeaderClick('title')} className="py-2 px-4 w-[220px] font-bold uppercase text-[11px] cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th className="py-2 px-2 w-[40px] font-bold uppercase text-[11px]"></th>
+            <th onClick={() => handleHeaderClick('title')} className="py-2 px-2 w-[220px] font-bold uppercase text-[11px] cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Aa Task <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
             <th onClick={() => handleHeaderClick('status')} className="py-2 px-4 w-[140px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
@@ -246,20 +269,44 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, sortConfig, 
           </tr>
         </thead>
         <tbody className="text-sm">
-          {sortedTasks.map(task => (
-            <tr key={task.id} className="group hover:bg-notion-hover border-b border-notion-border/50">
-              <td className="py-2 px-4 flex items-center gap-2"><IconFileText className="w-4 h-4 text-notion-muted" /> {task.title}</td>
+          {sortedTasks.map((task, index) => (
+            <tr 
+              key={task.id} 
+              draggable={sortConfig.length === 0}
+              onDragStart={(e) => onDragStart(e, index)}
+              onDragOver={(e) => onDragOver(e, index)}
+              onDrop={(e) => onDrop(e, index)}
+              className={`group hover:bg-notion-hover border-b border-notion-border/50 ${draggedIndex === index ? 'opacity-30' : ''}`}
+            >
+              <td className="py-2 px-2 cursor-grab active:cursor-grabbing">
+                <IconGripVertical className="w-4 h-4 text-gray-700 group-hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </td>
+              <td className="py-2 px-2 flex items-center gap-2"><IconFileText className="w-4 h-4 text-notion-muted" /> {task.title}</td>
               <td className="py-2 px-4 border-l border-notion-border/50"><StatusCell task={task} onChange={(s) => handleStatusChange(task, s)} /></td>
-              <td className="py-2 px-4 border-l border-notion-border/50"><TagCell value={task.frequency} options={Object.values(Frequency)} onChange={(v) => handleFrequencyChange(task, v as Frequency)} /></td>
+              <td className="py-2 px-4 border-l border-notion-border/50"><TagCell value={task.frequency} options={Object.values(Frequency)} onChange={(v) => onUpdateTask({ ...task, frequency: v as Frequency })} /></td>
               <td className="py-2 px-4 border-l border-notion-border/50"><TagCell value={task.priority} options={Object.values(Priority)} onChange={(v) => onUpdateTask({ ...task, priority: v as Priority })} /></td>
-              <td className="py-2 px-4 border-l border-notion-border/50 font-mono text-[13px]">{formatDate(task.nextDue)}</td>
-              <td className="py-2 px-4 border-l border-notion-border/50 text-gray-500 font-mono text-[13px]">{task.lastCompleted ? formatDate(task.lastCompleted) : '-'}</td>
+              <td className="py-2 px-4 border-l border-notion-border/50">
+                <input 
+                  type="date" 
+                  value={task.nextDue} 
+                  onChange={(e) => onUpdateTask({ ...task, nextDue: e.target.value })} 
+                  className="bg-transparent text-gray-300 font-mono text-[13px] outline-none border border-transparent hover:border-[#373737] px-1 rounded transition-colors"
+                />
+              </td>
+              <td className="py-2 px-4 border-l border-notion-border/50">
+                <input 
+                  type="date" 
+                  value={task.lastCompleted || ''} 
+                  onChange={(e) => onUpdateTask({ ...task, lastCompleted: e.target.value || null })} 
+                  className="bg-transparent text-gray-500 font-mono text-[13px] outline-none border border-transparent hover:border-[#373737] px-1 rounded transition-colors"
+                />
+              </td>
               <td className="py-2 px-4 border-l border-notion-border/50">{task.streak > 0 ? <span className="text-orange-400 font-bold">🔥 {task.streak}</span> : '0'}</td>
               <td className="py-2 px-4 border-l border-notion-border/50 text-center"><button onClick={() => onDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400"><IconTrash className="w-4 h-4" /></button></td>
             </tr>
           ))}
           <tr className="border-b border-notion-border/50 group">
-             <td colSpan={8} className="p-0">
+             <td colSpan={9} className="p-0">
                 <div className="flex items-center px-4 py-2 gap-2 text-notion-muted group-hover:text-notion-text transition-colors">
                    <IconPlus className="w-4 h-4" />
                    <input 

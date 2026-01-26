@@ -36,6 +36,7 @@ export interface Task {
   lastCompleted: string | null; // ISO Date string
   streak: number;
   category?: string; // Optional category for grouping
+  order?: number; // For manual drag and drop sorting
   
   // Fitness specific fields
   reps?: string; // e.g. "3x12" or "30 mins"
