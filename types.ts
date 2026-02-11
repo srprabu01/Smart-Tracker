@@ -23,7 +23,8 @@ export enum FitnessCategory {
   ABS = 'Abs',
   GLUTES = 'Glutes',
   SNOWBOARD = 'Snowboard',
-  GROCERY = 'Grocery'
+  GROCERY = 'Grocery',
+  DAILY = 'Daily Workout'
 }
 
 export interface Task {

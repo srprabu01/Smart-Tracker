@@ -212,7 +212,7 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [playingVideo, setPlayingVideo] = useState<{url: string, title: string} | null>(null);
   
-  // Included FitnessCategory.DAILY in the list of categories to display
+  // Use display-friendly names for categories in columns
   const categories = [FitnessCategory.DAILY, FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD];
   
   const completedTasks = tasks.filter(t => t.status === Status.DONE).length;
@@ -236,7 +236,7 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
   };
   
   return (
-    <div className="h-full flex flex-col max-w-7xl mx-auto px-4 lg:px-0">
+    <div className="h-full flex flex-col max-w-7xl mx-auto">
         <div className="mb-8 bg-[#202020] rounded-xl p-6 border border-[#333]">
             <div className="flex justify-between items-end mb-2">
                 <div><h2 className="text-xl font-bold text-white">Fitness Progress</h2></div>
@@ -244,20 +244,9 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
             </div>
             <div className="w-full bg-[#333] rounded-full h-3 overflow-hidden"><div className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full transition-all duration-500" style={{ width: `${progress}%` }}></div></div>
         </div>
-        <div className="flex flex-col lg:flex-row gap-6 items-start pb-10 overflow-x-auto scrollbar-hide">
+        <div className="flex flex-col lg:flex-row gap-6 items-start pb-10 overflow-x-auto">
             {categories.map(cat => (
-                <FitnessColumn 
-                    key={cat} 
-                    title={cat === FitnessCategory.DAILY ? 'Daily' : cat} 
-                    category={cat} 
-                    tasks={tasks.filter(t => t.category === cat)} 
-                    onAddTask={() => onAddTask(cat)} 
-                    onDropTask={handleDropTask} 
-                    onDeleteTask={onDeleteTask} 
-                    onEditTask={setEditingTask} 
-                    onPlayVideo={(url, title) => setPlayingVideo({ url, title })} 
-                    onToggleStatus={handleToggleStatus} 
-                />
+                <FitnessColumn key={cat} title={cat === FitnessCategory.DAILY ? 'Daily' : cat} category={cat} tasks={tasks.filter(t => t.category === cat)} onAddTask={() => onAddTask(cat)} onDropTask={handleDropTask} onDeleteTask={onDeleteTask} onEditTask={setEditingTask} onPlayVideo={(url, title) => setPlayingVideo({ url, title })} onToggleStatus={handleToggleStatus} />
             ))}
         </div>
         {editingTask && <WorkoutModal task={editingTask} onClose={() => setEditingTask(null)} onSave={onUpdateTask} />}

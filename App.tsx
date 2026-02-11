@@ -72,7 +72,6 @@ const App: React.FC = () => {
   };
 
   const handleReorderTasks = (reorderedTasks: Task[]) => {
-    // Update the 'order' property based on the new array position
     const updated = reorderedTasks.map((task, index) => ({ ...task, order: index }));
     setTasks(updated);
   };
@@ -89,28 +88,27 @@ const App: React.FC = () => {
     const matchesSearch = !search || task.title.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
-    // Grocery Run is its own separate list
-    if (view === 'Grocery Run') {
-      return task.category === FitnessCategory.GROCERY;
-    }
+    const isFitness = [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD, FitnessCategory.DAILY].includes(task.category as FitnessCategory);
+    const isGrocery = task.category === FitnessCategory.GROCERY;
 
-    // Grocery items should NOT appear in other lists (Fitness or All Tasks)
-    if (task.category === FitnessCategory.GROCERY) return false;
-
-    if (view === 'Fitness') {
-      return [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD].includes(task.category as FitnessCategory);
-    }
-    
+    // Analytics sees everything
     if (view === 'Analytics') return true;
+
+    // Strict separation logic
+    if (view === 'Grocery Run') return isGrocery;
+    if (view === 'Fitness') return isFitness;
     
-    // For "All Tasks" and "By Status", we show everything except Groceries
+    // For 'All Tasks' or 'By Status', exclude Fitness and Grocery items completely
+    if (view === 'All Tasks' || view === 'By Status') {
+       return !isFitness && !isGrocery;
+    }
+    
     return true;
   });
 
   const handleReset = () => {
     setSearch('');
     setSortConfig([]);
-    // Restore original creation order (or just clear manual overrides)
     const resetOrder = [...tasks].sort((a, b) => (a.id > b.id ? 1 : -1));
     setTasks(resetOrder.map((t, i) => ({ ...t, order: i })));
   };
@@ -130,15 +128,15 @@ const App: React.FC = () => {
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
                <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400"><IconCalendar className="w-6 h-6" /></div>
                <div>
-                 <div className="text-xl font-bold text-white">{tasksDueToday.length} Tasks Remaining</div>
-                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Due Today: {today}</div>
+                 <div className="text-xl font-bold text-white">{tasksDueToday.filter(t => ![FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD, FitnessCategory.DAILY, FitnessCategory.GROCERY].includes(t.category as FitnessCategory)).length} Tasks Remaining</div>
+                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">General Tasks Due Today</div>
                </div>
             </div>
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
                <div className="bg-orange-500/10 p-3 rounded-lg text-orange-400"><IconSparkles className="w-6 h-6" /></div>
                <div>
                  <div className="text-xl font-bold text-white">{bestStreak} Day Streak</div>
-                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Your best consistency score</div>
+                 <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">Consistency is key</div>
                </div>
             </div>
           </div>
@@ -164,7 +162,7 @@ const App: React.FC = () => {
           <div className="flex items-center gap-4">
             <div className="relative">
               <IconSearch className="w-4 h-4 text-notion-muted absolute left-2 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border border-transparent hover:border-notion-border focus:border-blue-500 rounded px-2 py-1 pl-8 text-sm outline-none w-48 transition-colors" />
+              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border border-transparent hover:border-notion-border focus:border-blue-500 rounded px-2 py-1 pl-8 text-sm outline-none w-48 transition-colors" />
             </div>
 
             <div className="relative">
@@ -190,16 +188,22 @@ const App: React.FC = () => {
             </button>
           </div>
           <SmartTaskInput 
-            onAddTask={(t) => handleAddTask(view === 'Grocery Run' ? { ...t, category: FitnessCategory.GROCERY } : t)} 
+            onAddTask={(t) => {
+              // Automatically assign category if creating a task while in a specific view
+              let finalTask = { ...t };
+              if (view === 'Grocery Run') finalTask.category = FitnessCategory.GROCERY;
+              if (view === 'Fitness') finalTask.category = FitnessCategory.DAILY; // Default to Daily Workout in fitness view
+              handleAddTask(finalTask);
+            }} 
           />
         </div>
       </header>
 
       <main className="px-12">
         {view === 'By Status' ? (
-           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} onDeleteTask={handleDeleteTask} />
+           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Fitness' ? (
-           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'Workout', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat })} onDeleteTask={handleDeleteTask} />
+           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
         ) : (
@@ -210,7 +214,10 @@ const App: React.FC = () => {
              sortConfig={sortConfig} 
              onSortChange={setSortConfig} 
              onDeleteTask={handleDeleteTask} 
-             onAddTask={(s, title) => handleAddTask(view === 'Grocery Run' ? { title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, category: FitnessCategory.GROCERY } : { title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} 
+             onAddTask={(s, title) => {
+               const category = view === 'Grocery Run' ? FitnessCategory.GROCERY : undefined;
+               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, category });
+             }} 
            />
         )}
       </main>
