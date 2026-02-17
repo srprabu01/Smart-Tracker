@@ -29,62 +29,50 @@ const INITIAL_TASKS: Task[] = [
 ];
 
 const App: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>(() => {
-    try {
-      const saved = localStorage.getItem('notion-tasks');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch (e) {
-      console.error("Failed to parse saved tasks:", e);
-    }
-    return INITIAL_TASKS;
-  });
-  
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [view, setView] = useState<ViewType>('All Tasks');
   const [search, setSearch] = useState('');
   const [sortConfig, setSortConfig] = useState<SortOption[]>([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
-  // --- AUTO-RESET & NORMALIZATION ENGINE ---
+  // 1. Initial Data Load & Reset Engine
   useEffect(() => {
-    const today = getLocalToday();
-    let hasChanges = false;
-
-    const updatedTasks = tasks.map(task => {
-      let updated = { ...task };
-      let changed = false;
-
-      // 1. Data Normalization: Ensure old 'Daily' string matches 'Daily Workout' enum
-      if (updated.category === 'Daily') {
-        updated.category = FitnessCategory.DAILY;
-        changed = true;
-      }
-
-      // 2. Auto-Reset: If a task is DONE but its nextDue is Today or in the Past, move to TODO
-      // This ensures daily/weekly workouts reappear as "To Do" when the day changes.
-      if (updated.status === Status.DONE && updated.nextDue <= today && updated.frequency !== Frequency.ONCE) {
-        updated.status = Status.TODO;
-        changed = true;
-      }
-
-      if (changed) hasChanges = true;
-      return updated;
-    });
-
-    if (hasChanges) {
-      setTasks(updatedTasks);
-    }
-  }, []); // Run once on mount
-
-  useEffect(() => { 
     try {
-      localStorage.setItem('notion-tasks', JSON.stringify(tasks)); 
+      const saved = localStorage.getItem('notion-tasks');
+      const today = getLocalToday();
+      let rawTasks = INITIAL_TASKS;
+
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          rawTasks = parsed;
+        }
+      }
+
+      // Auto-Reset completed tasks whose nextDue is Today or in the Past
+      const resetTasks = rawTasks.map(task => {
+        let updated = { ...task };
+        if (updated.status === Status.DONE && updated.nextDue <= today && updated.frequency !== Frequency.ONCE) {
+          updated.status = Status.TODO;
+        }
+        return updated;
+      });
+
+      setTasks(resetTasks);
     } catch (e) {
-      console.error("Failed to save tasks to localStorage:", e);
+      console.error("Initialization failed:", e);
+      setTasks(INITIAL_TASKS);
+    } finally {
+      setHasLoaded(true);
     }
-  }, [tasks]);
+  }, []);
+
+  // 2. Continuous Persistence
+  useEffect(() => { 
+    if (!hasLoaded) return; 
+    localStorage.setItem('notion-tasks', JSON.stringify(tasks)); 
+  }, [tasks, hasLoaded]);
 
   const handleAddTask = (newTaskData: Omit<Task, 'id' | 'streak' | 'lastCompleted'>, customTitle?: string) => {
     const newTask: Task = {
@@ -119,21 +107,28 @@ const App: React.FC = () => {
     const matchesSearch = !search || task.title.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
-    // Robust check for fitness categories
-    const isFitness = [
+    // Define what constitutes a "Fitness" task more broadly to prevent disappearing items
+    const isFitnessCategory = [
       FitnessCategory.ABS, 
       FitnessCategory.GLUTES, 
       FitnessCategory.SNOWBOARD, 
       FitnessCategory.DAILY,
-      'Daily' // Catch legacy strings just in case
+      'Others', // Catch tasks in the "Others" column
+      'Daily'   // Legacy support
     ].includes(task.category as any);
 
+    const titleLower = task.title.toLowerCase();
+    const isFitnessKeyword = titleLower.includes('workout') || titleLower.includes('exercise') || titleLower.includes('gym') || titleLower.includes('training');
+    
+    // It's a fitness task if it's in a fitness category OR has fitness keywords and no specific general category
+    const isFitness = isFitnessCategory || (isFitnessKeyword && (task.category === undefined || task.category === ''));
     const isGrocery = task.category === FitnessCategory.GROCERY;
 
     if (view === 'Analytics') return true;
     if (view === 'Grocery Run') return isGrocery;
     if (view === 'Fitness') return isFitness;
     
+    // In "All Tasks", we hide Fitness and Grocery to keep the general list clean
     if (view === 'All Tasks' || view === 'By Status') {
        return !isFitness && !isGrocery;
     }
@@ -147,6 +142,17 @@ const App: React.FC = () => {
     const resetOrder = [...tasks].sort((a, b) => (a.id > b.id ? 1 : -1));
     setTasks(resetOrder.map((t, i) => ({ ...t, order: i })));
   };
+
+  if (!hasLoaded) {
+    return (
+      <div className="min-h-screen bg-notion-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+           <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+           <p className="text-notion-muted font-medium animate-pulse">Synchronizing Workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40">
@@ -163,7 +169,7 @@ const App: React.FC = () => {
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
                <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400"><IconCalendar className="w-6 h-6" /></div>
                <div>
-                 <div className="text-xl font-bold text-white">{tasksDueToday.filter(t => ![FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD, FitnessCategory.DAILY, FitnessCategory.GROCERY].includes(t.category as any)).length} Tasks Remaining</div>
+                 <div className="text-xl font-bold text-white">{tasksDueToday.filter(t => !filteredTasks.find(ft => ft.id === t.id)).length} Tasks Remaining</div>
                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">General Tasks Due Today</div>
                </div>
             </div>
@@ -226,6 +232,7 @@ const App: React.FC = () => {
             onAddTask={(t) => {
               let finalTask = { ...t };
               if (view === 'Grocery Run') finalTask.category = FitnessCategory.GROCERY;
+              // If adding while in fitness view, default to the Daily Workout category
               if (view === 'Fitness') finalTask.category = FitnessCategory.DAILY;
               handleAddTask(finalTask);
             }} 

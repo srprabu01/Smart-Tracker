@@ -212,9 +212,11 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [playingVideo, setPlayingVideo] = useState<{url: string, title: string} | null>(null);
   
-  // Included FitnessCategory.DAILY in the list of categories to display
-  const categories = [FitnessCategory.DAILY, FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD];
+  const standardCategories = [FitnessCategory.DAILY, FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD];
   
+  // Find tasks that are "fitness" but don't fall into a standard bucket (to prevent disappearing)
+  const otherFitnessTasks = tasks.filter(t => !standardCategories.includes(t.category as FitnessCategory));
+
   const completedTasks = tasks.filter(t => t.status === Status.DONE).length;
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
   
@@ -245,7 +247,7 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
             <div className="w-full bg-[#333] rounded-full h-3 overflow-hidden"><div className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full transition-all duration-500" style={{ width: `${progress}%` }}></div></div>
         </div>
         <div className="flex flex-col lg:flex-row gap-6 items-start pb-10 overflow-x-auto scrollbar-hide">
-            {categories.map(cat => (
+            {standardCategories.map(cat => (
                 <FitnessColumn 
                     key={cat} 
                     title={cat === FitnessCategory.DAILY ? 'Daily' : cat} 
@@ -259,6 +261,20 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
                     onToggleStatus={handleToggleStatus} 
                 />
             ))}
+            {otherFitnessTasks.length > 0 && (
+                 <FitnessColumn 
+                    key="others" 
+                    title="Others" 
+                    category="Others" 
+                    tasks={otherFitnessTasks} 
+                    onAddTask={() => onAddTask(FitnessCategory.DAILY)} 
+                    onDropTask={handleDropTask} 
+                    onDeleteTask={onDeleteTask} 
+                    onEditTask={setEditingTask} 
+                    onPlayVideo={(url, title) => setPlayingVideo({ url, title })} 
+                    onToggleStatus={handleToggleStatus} 
+                />
+            )}
         </div>
         {editingTask && <WorkoutModal task={editingTask} onClose={() => setEditingTask(null)} onSave={onUpdateTask} />}
         {playingVideo && <VideoPlayerModal url={playingVideo.url} title={playingVideo.title} onClose={() => setPlayingVideo(null)} />}
