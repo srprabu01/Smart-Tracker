@@ -23,8 +23,8 @@ export enum FitnessCategory {
   ABS = 'Abs',
   GLUTES = 'Glutes',
   SNOWBOARD = 'Snowboard',
-  GROCERY = 'Grocery',
-  DAILY = 'Daily Workout'
+  DAILY = 'Daily Workout',
+  OTHERS = 'Others'
 }
 
 export interface Task {
@@ -38,6 +38,8 @@ export interface Task {
   streak: number;
   category?: string; // Optional category for grouping
   order?: number; // For manual drag and drop sorting
+  isFitness?: boolean; // Explicit flag for fitness tasks
+  isGrocery?: boolean; // Explicit flag for grocery tasks
   
   // Fitness specific fields
   reps?: string; // e.g. "3x12" or "30 mins"

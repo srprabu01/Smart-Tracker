@@ -22,10 +22,10 @@ import {
 } from './components/Icons';
 
 const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 0 },
-  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 1 },
-  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.DAILY, reps: '5 mins', isHomeWorkout: true, order: 2 },
-  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.GROCERY, order: 3 },
+  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 0, isFitness: false, isGrocery: false },
+  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 1, isFitness: false, isGrocery: false },
+  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.DAILY, reps: '5 mins', isHomeWorkout: true, order: 2, isFitness: true, isGrocery: false },
+  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 3, isFitness: false, isGrocery: true },
 ];
 
 const App: React.FC = () => {
@@ -107,30 +107,13 @@ const App: React.FC = () => {
     const matchesSearch = !search || task.title.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch) return false;
 
-    // Define what constitutes a "Fitness" task more broadly to prevent disappearing items
-    const isFitnessCategory = [
-      FitnessCategory.ABS, 
-      FitnessCategory.GLUTES, 
-      FitnessCategory.SNOWBOARD, 
-      FitnessCategory.DAILY,
-      'Others', // Catch tasks in the "Others" column
-      'Daily'   // Legacy support
-    ].includes(task.category as any);
-
-    const titleLower = task.title.toLowerCase();
-    const isFitnessKeyword = titleLower.includes('workout') || titleLower.includes('exercise') || titleLower.includes('gym') || titleLower.includes('training');
-    
-    // It's a fitness task if it's in a fitness category OR has fitness keywords and no specific general category
-    const isFitness = isFitnessCategory || (isFitnessKeyword && (task.category === undefined || task.category === ''));
-    const isGrocery = task.category === FitnessCategory.GROCERY;
-
     if (view === 'Analytics') return true;
-    if (view === 'Grocery Run') return isGrocery;
-    if (view === 'Fitness') return isFitness;
+    if (view === 'Grocery Run') return task.isGrocery;
+    if (view === 'Fitness') return task.isFitness;
     
-    // In "All Tasks", we hide Fitness and Grocery to keep the general list clean
+    // In "All Tasks" and "By Status", we hide Fitness and Grocery to keep the general list clean
     if (view === 'All Tasks' || view === 'By Status') {
-       return !isFitness && !isGrocery;
+       return !task.isFitness && !task.isGrocery;
     }
     
     return true;
@@ -169,7 +152,7 @@ const App: React.FC = () => {
             <div className="bg-[#202020] border border-[#373737] rounded-xl p-4 flex items-center gap-4">
                <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400"><IconCalendar className="w-6 h-6" /></div>
                <div>
-                 <div className="text-xl font-bold text-white">{tasksDueToday.filter(t => !filteredTasks.find(ft => ft.id === t.id)).length} Tasks Remaining</div>
+                 <div className="text-xl font-bold text-white">{filteredTasks.filter(t => t.nextDue === today && t.status !== Status.DONE).length} Tasks Remaining</div>
                  <div className="text-xs text-gray-500 font-bold uppercase tracking-wider">General Tasks Due Today</div>
                </div>
             </div>
@@ -231,9 +214,27 @@ const App: React.FC = () => {
           <SmartTaskInput 
             onAddTask={(t) => {
               let finalTask = { ...t };
-              if (view === 'Grocery Run') finalTask.category = FitnessCategory.GROCERY;
-              // If adding while in fitness view, default to the Daily Workout category
-              if (view === 'Fitness') finalTask.category = FitnessCategory.DAILY;
+              // If we're in a specific view, force the flag
+              if (view === 'Grocery Run') {
+                finalTask.isGrocery = true;
+                finalTask.isFitness = false;
+              } else if (view === 'Fitness') {
+                finalTask.isFitness = true;
+                finalTask.isGrocery = false;
+                finalTask.category = finalTask.category || FitnessCategory.DAILY;
+              } else {
+                // In other views, infer from the parsed data
+                // If Gemini found reps or isHomeWorkout, it's likely a fitness task
+                const isLikelyFitness = !!t.reps || !!t.isHomeWorkout || t.title.toLowerCase().includes('workout') || t.title.toLowerCase().includes('exercise');
+                const isLikelyGrocery = t.title.toLowerCase().includes('buy') || t.title.toLowerCase().includes('grocery') || t.title.toLowerCase().includes('shop');
+                
+                finalTask.isFitness = isLikelyFitness;
+                finalTask.isGrocery = isLikelyGrocery;
+                
+                if (isLikelyFitness && !finalTask.category) {
+                  finalTask.category = FitnessCategory.DAILY;
+                }
+              }
               handleAddTask(finalTask);
             }} 
           />
@@ -242,9 +243,9 @@ const App: React.FC = () => {
 
       <main className="px-12">
         {view === 'By Status' ? (
-           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today })} onDeleteTask={handleDeleteTask} />
+           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Fitness' ? (
-           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat })} onDeleteTask={handleDeleteTask} />
+           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat, isFitness: true, isGrocery: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
         ) : (
@@ -256,8 +257,8 @@ const App: React.FC = () => {
              onSortChange={setSortConfig} 
              onDeleteTask={handleDeleteTask} 
              onAddTask={(s, title) => {
-               const category = view === 'Grocery Run' ? FitnessCategory.GROCERY : undefined;
-               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, category });
+               const isGrocery = view === 'Grocery Run';
+               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isGrocery, isFitness: false });
              }} 
            />
         )}

@@ -81,7 +81,8 @@ export const TAG_STYLES: Record<string, string> = {
   [FitnessCategory.ABS]: 'bg-[#4c1d1d] text-[#ffada4]',
   [FitnessCategory.GLUTES]: 'bg-[#2e1d36] text-[#d695d0]',
   [FitnessCategory.SNOWBOARD]: 'bg-[#1d2b3a] text-[#90cdf4]',
-  [FitnessCategory.GROCERY]: 'bg-[#3c3623] text-[#e0c675]',
+  [FitnessCategory.DAILY]: 'bg-[#1c3829] text-[#6dd39b]',
+  [FitnessCategory.OTHERS]: 'bg-[#2a2a2a] text-[#9b9b9b]',
   'None': 'text-notion-muted bg-transparent border border-notion-border',
 };
 

@@ -69,7 +69,6 @@ const ConsistencyHeatmap = ({ tasks }: { tasks: Task[] }) => {
 
 const ActivityTrendChart = ({ tasks }: { tasks: Task[] }) => {
     const [range, setRange] = useState<'7d' | '30d'>('7d');
-    const fitnessCategories = [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD];
 
     const chartData = useMemo(() => {
         const days = [];
@@ -85,7 +84,7 @@ const ActivityTrendChart = ({ tasks }: { tasks: Task[] }) => {
         return days.map(day => {
             const dayTasks = tasks.filter(t => t.lastCompleted === day);
             const total = dayTasks.length;
-            const fitness = dayTasks.filter(t => fitnessCategories.includes(t.category as FitnessCategory)).length;
+            const fitness = dayTasks.filter(t => t.isFitness).length;
             const dateObj = new Date(day);
             const label = range === '7d' 
                 ? dateObj.toLocaleDateString('en-US', { weekday: 'short' })
@@ -143,7 +142,7 @@ const ActivityTrendChart = ({ tasks }: { tasks: Task[] }) => {
 const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ tasks }) => {
   const today = getLocalToday();
   const completedToday = tasks.filter(t => t.lastCompleted === today).length;
-  const fitnessTasks = tasks.filter(t => [FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD].includes(t.category as FitnessCategory));
+  const fitnessTasks = tasks.filter(t => t.isFitness);
   const fitnessDoneToday = fitnessTasks.filter(t => t.lastCompleted === today).length;
   
   const totalTasks = tasks.length;

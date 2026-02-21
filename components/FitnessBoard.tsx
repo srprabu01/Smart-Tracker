@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Task, Status, Priority, Frequency, FitnessCategory } from '../types.ts';
-import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue } from './TaskTable.tsx';
-import { IconPlus, IconTrash, IconX, IconDumbbell, IconCircle, IconCheckCircle } from './Icons.tsx';
+import { Task, Status, Priority, Frequency, FitnessCategory } from '../types';
+import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue } from './TaskTable';
+import { IconPlus, IconTrash, IconX, IconDumbbell, IconCircle, IconCheckCircle } from './Icons';
 
 const IconPlay = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none" className={className}><path d="M8 5v14l11-7z"/></svg>
@@ -212,11 +212,9 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [playingVideo, setPlayingVideo] = useState<{url: string, title: string} | null>(null);
   
-  const standardCategories = [FitnessCategory.DAILY, FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD];
+  // Use display-friendly names for categories in columns
+  const categories = [FitnessCategory.DAILY, FitnessCategory.ABS, FitnessCategory.GLUTES, FitnessCategory.SNOWBOARD, FitnessCategory.OTHERS];
   
-  // Find tasks that are "fitness" but don't fall into a standard bucket (to prevent disappearing)
-  const otherFitnessTasks = tasks.filter(t => !standardCategories.includes(t.category as FitnessCategory));
-
   const completedTasks = tasks.filter(t => t.status === Status.DONE).length;
   const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
   
@@ -247,12 +245,12 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
             <div className="w-full bg-[#333] rounded-full h-3 overflow-hidden"><div className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full transition-all duration-500" style={{ width: `${progress}%` }}></div></div>
         </div>
         <div className="flex flex-col lg:flex-row gap-6 items-start pb-10 overflow-x-auto scrollbar-hide">
-            {standardCategories.map(cat => (
+            {categories.map(cat => (
                 <FitnessColumn 
                     key={cat} 
                     title={cat === FitnessCategory.DAILY ? 'Daily' : cat} 
                     category={cat} 
-                    tasks={tasks.filter(t => t.category === cat)} 
+                    tasks={tasks.filter(t => t.category === cat || (!t.category && cat === FitnessCategory.DAILY))} 
                     onAddTask={() => onAddTask(cat)} 
                     onDropTask={handleDropTask} 
                     onDeleteTask={onDeleteTask} 
@@ -261,20 +259,6 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
                     onToggleStatus={handleToggleStatus} 
                 />
             ))}
-            {otherFitnessTasks.length > 0 && (
-                 <FitnessColumn 
-                    key="others" 
-                    title="Others" 
-                    category="Others" 
-                    tasks={otherFitnessTasks} 
-                    onAddTask={() => onAddTask(FitnessCategory.DAILY)} 
-                    onDropTask={handleDropTask} 
-                    onDeleteTask={onDeleteTask} 
-                    onEditTask={setEditingTask} 
-                    onPlayVideo={(url, title) => setPlayingVideo({ url, title })} 
-                    onToggleStatus={handleToggleStatus} 
-                />
-            )}
         </div>
         {editingTask && <WorkoutModal task={editingTask} onClose={() => setEditingTask(null)} onSave={onUpdateTask} />}
         {playingVideo && <VideoPlayerModal url={playingVideo.url} title={playingVideo.title} onClose={() => setPlayingVideo(null)} />}

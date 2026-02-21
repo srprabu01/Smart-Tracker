@@ -168,7 +168,9 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
               frequency: { type: Type.STRING, enum: Object.values(Frequency) },
               nextDue: { type: Type.STRING, description: "YYYY-MM-DD" },
               category: { type: Type.STRING, enum: Object.values(FitnessCategory), description: "Optional category" },
-              reps: { type: Type.STRING, description: "Workout duration or reps/sets" }
+              reps: { type: Type.STRING, description: "Workout duration or reps/sets" },
+              isFitness: { type: Type.BOOLEAN, description: "True if this is a workout or exercise" },
+              isGrocery: { type: Type.BOOLEAN, description: "True if this is a grocery item" }
             },
             required: ['title', 'status', 'frequency', 'priority', 'nextDue']
           }
@@ -232,7 +234,9 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
                             frequency: fc.args.frequency as Frequency,
                             nextDue: fc.args.nextDue as string,
                             category: fc.args.category as string,
-                            reps: fc.args.reps as string
+                            reps: fc.args.reps as string,
+                            isFitness: (fc.args.isFitness as boolean) || !!fc.args.reps || !!fc.args.category,
+                            isGrocery: (fc.args.isGrocery as boolean) || false
                         });
                         result = { result: "Task added" };
                     } else if (fc.name === 'updateTaskStatus') {
