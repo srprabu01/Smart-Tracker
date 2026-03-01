@@ -170,7 +170,12 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
               category: { type: Type.STRING, enum: Object.values(FitnessCategory), description: "Optional category" },
               reps: { type: Type.STRING, description: "Workout duration or reps/sets" },
               isFitness: { type: Type.BOOLEAN, description: "True if this is a workout or exercise" },
-              isGrocery: { type: Type.BOOLEAN, description: "True if this is a grocery item" }
+              isGrocery: { type: Type.BOOLEAN, description: "True if this is a grocery item" },
+              isJobSearch: { type: Type.BOOLEAN, description: "True if this is a job application or search task" },
+              company: { type: Type.STRING },
+              role: { type: Type.STRING },
+              location: { type: Type.STRING },
+              salary: { type: Type.STRING }
             },
             required: ['title', 'status', 'frequency', 'priority', 'nextDue']
           }
@@ -236,7 +241,12 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
                             category: fc.args.category as string,
                             reps: fc.args.reps as string,
                             isFitness: (fc.args.isFitness as boolean) || !!fc.args.reps || !!fc.args.category,
-                            isGrocery: (fc.args.isGrocery as boolean) || false
+                            isGrocery: (fc.args.isGrocery as boolean) || false,
+                            isJobSearch: (fc.args.isJobSearch as boolean) || !!fc.args.company || !!fc.args.role,
+                            company: fc.args.company as string,
+                            role: fc.args.role as string,
+                            location: fc.args.location as string,
+                            salary: fc.args.salary as string
                         });
                         result = { result: "Task added" };
                     } else if (fc.name === 'updateTaskStatus') {

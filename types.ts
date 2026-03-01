@@ -40,11 +40,20 @@ export interface Task {
   order?: number; // For manual drag and drop sorting
   isFitness?: boolean; // Explicit flag for fitness tasks
   isGrocery?: boolean; // Explicit flag for grocery tasks
+  isJobSearch?: boolean; // Explicit flag for job search tasks
   
   // Fitness specific fields
   reps?: string; // e.g. "3x12" or "30 mins"
   videoUrl?: string; // URL to a tutorial
   isHomeWorkout?: boolean; // If true, can be done at home
+
+  // Job Search specific fields
+  company?: string;
+  role?: string;
+  salary?: string;
+  location?: string;
+  link?: string;
+  notes?: string;
 }
 
 export interface SortOption {
@@ -53,4 +62,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Analytics';
+export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Analytics';

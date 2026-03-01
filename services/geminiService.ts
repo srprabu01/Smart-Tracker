@@ -37,7 +37,10 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
       Next Due should be YYYY-MM-DD format based on "today", "tomorrow", "next friday", etc.
       For fitness tasks:
       - Look for "reps", "sets", "minutes" for the 'reps' field (e.g. "3 sets of 10", "30 mins").
-      - Infer 'isHomeWorkout' if the context implies home equipment or bodyweight (e.g. "pushups", "yoga", "home workout").`,
+      - Infer 'isHomeWorkout' if the context implies home equipment or bodyweight (e.g. "pushups", "yoga", "home workout").
+      For job search tasks:
+      - Extract 'company', 'role', 'salary', 'location', 'link' if mentioned.
+      - Infer 'isJobSearch' if it mentions applying, interviewing, or a company name.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -49,7 +52,13 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
             priority: { type: Type.STRING, enum: Object.values(Priority) },
             nextDue: { type: Type.STRING, description: "YYYY-MM-DD date" },
             reps: { type: Type.STRING, description: "Workout duration or sets/reps (e.g. '3x12')" },
-            isHomeWorkout: { type: Type.BOOLEAN, description: "True if explicitly a home workout or bodyweight exercise" }
+            isHomeWorkout: { type: Type.BOOLEAN, description: "True if explicitly a home workout or bodyweight exercise" },
+            company: { type: Type.STRING },
+            role: { type: Type.STRING },
+            salary: { type: Type.STRING },
+            location: { type: Type.STRING },
+            link: { type: Type.STRING },
+            isJobSearch: { type: Type.BOOLEAN }
           },
           required: ["title", "status", "frequency", "priority", "nextDue"]
         }
