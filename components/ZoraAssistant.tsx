@@ -128,7 +128,7 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
 
     try {
       // Ensure we use a fresh GoogleGenAI instance with the latest apiKey
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -197,7 +197,7 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
       ];
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+        model: 'gemini-3.1-flash-live-preview',
         config: {
           systemInstruction: "You are Zora, a helpful and efficient personal task manager assistant. You have full access to the user's task app. Always be concise. Confirm actions verbally.",
           tools: [{ functionDeclarations: tools }],

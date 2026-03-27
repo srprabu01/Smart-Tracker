@@ -4,7 +4,7 @@ import { Frequency, Priority, Status, Task } from "../types.ts";
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
   }
   return aiInstance;
 };
@@ -18,7 +18,27 @@ interface ParsedTaskData {
   nextDue: string; // We expect YYYY-MM-DD
   reps?: string;
   isHomeWorkout?: boolean;
+  company?: string;
+  role?: string;
+  salary?: string;
+  location?: string;
+  link?: string;
+  isJobSearch?: boolean;
+  jobCount?: number;
+  isProject?: boolean;
 }
+
+const extractJson = (text: string) => {
+  try {
+    // Try to find JSON block
+    const match = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```([\s\S]*?)```/);
+    const jsonStr = match ? match[1] : text;
+    return JSON.parse(jsonStr.trim());
+  } catch (e) {
+    console.error("Failed to extract JSON from:", text);
+    return null;
+  }
+};
 
 export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData | null> => {
   const today = new Date().toISOString().split('T')[0];
@@ -70,12 +90,19 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
     });
 
     if (response.text) {
-      return JSON.parse(response.text) as ParsedTaskData;
+      const parsed = extractJson(response.text);
+      if (parsed) return parsed as ParsedTaskData;
+      console.error("Failed to parse JSON from Gemini response:", response.text);
     }
+    console.error("Empty response from Gemini");
     return null;
 
   } catch (error) {
     console.error("Error parsing task with Gemini:", error);
+    if (error instanceof Error) {
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+    }
     return null;
   }
 };
