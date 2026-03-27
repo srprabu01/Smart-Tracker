@@ -4,7 +4,8 @@ import { Frequency, Priority, Status, Task } from "../types.ts";
 let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
-    aiInstance = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+    const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+    aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
 };
@@ -29,13 +30,23 @@ interface ParsedTaskData {
 }
 
 const extractJson = (text: string) => {
+  if (!text) return null;
   try {
-    // Try to find JSON block
-    const match = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```([\s\S]*?)```/);
+    // Try to find JSON block with or without "json" tag
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     const jsonStr = match ? match[1] : text;
     return JSON.parse(jsonStr.trim());
   } catch (e) {
     console.error("Failed to extract JSON from:", text);
+    // Fallback: try to find anything between { and }
+    try {
+        const fallbackMatch = text.match(/\{[\s\S]*\}/);
+        if (fallbackMatch) {
+            return JSON.parse(fallbackMatch[0]);
+        }
+    } catch (e2) {
+        console.error("Fallback JSON extraction failed:", e2);
+    }
     return null;
   }
 };

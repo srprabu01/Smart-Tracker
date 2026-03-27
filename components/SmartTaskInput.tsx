@@ -23,17 +23,23 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
 
     setLoading(true);
     // Use Gemini to parse
-    const parsed = await parseTaskFromInput(input);
-    setLoading(false);
+    try {
+        const parsed = await parseTaskFromInput(input);
+        setLoading(false);
 
-    if (parsed) {
-      onAddTask({
-        ...parsed
-      });
-      setInput('');
-      setIsOpen(false);
-    } else {
-        alert("Could not parse task with AI. Please try again or check internet.");
+        if (parsed) {
+          onAddTask({
+            ...parsed
+          });
+          setInput('');
+          setIsOpen(false);
+        } else {
+            alert("Could not parse task with AI. Please try again or check if you've set your Gemini API key in the settings.");
+        }
+    } catch (e) {
+        setLoading(false);
+        console.error("SmartTaskInput error:", e);
+        alert("An error occurred while connecting to the AI. Please check your internet connection or API key.");
     }
   };
 
