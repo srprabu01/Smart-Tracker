@@ -175,7 +175,9 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
               company: { type: Type.STRING },
               role: { type: Type.STRING },
               location: { type: Type.STRING },
-              salary: { type: Type.STRING }
+              salary: { type: Type.STRING },
+              jobCount: { type: Type.INTEGER, description: "Number of jobs applied to" },
+              isProject: { type: Type.BOOLEAN, description: "True if this is a project idea or development task" }
             },
             required: ['title', 'status', 'frequency', 'priority', 'nextDue']
           }
@@ -246,7 +248,9 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
                             company: fc.args.company as string,
                             role: fc.args.role as string,
                             location: fc.args.location as string,
-                            salary: fc.args.salary as string
+                            salary: fc.args.salary as string,
+                            jobCount: fc.args.jobCount as number,
+                            isProject: (fc.args.isProject as boolean) || false
                         });
                         result = { result: "Task added" };
                     } else if (fc.name === 'updateTaskStatus') {

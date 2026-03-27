@@ -5,6 +5,7 @@ import SortPopup from './components/SortPopup';
 import KanbanBoard from './components/KanbanBoard';
 import FitnessBoard from './components/FitnessBoard';
 import JobSearchBoard from './components/JobSearchBoard';
+import ProjectsBoard from './components/ProjectsBoard';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import ZoraAssistant from './components/ZoraAssistant';
 import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
@@ -18,6 +19,7 @@ import {
   IconShoppingCart,
   IconDumbbell,
   IconBriefcase,
+  IconLightbulb,
   IconBarChart,
   IconSparkles,
   IconCalendar
@@ -122,15 +124,17 @@ const App: React.FC = () => {
     const isFitness = task.isFitness;
     const isGrocery = task.isGrocery;
     const isJobSearch = task.isJobSearch;
+    const isProject = task.isProject;
 
     if (view === 'Analytics') return true;
     if (view === 'Grocery Run') return task.isGrocery;
     if (view === 'Fitness') return task.isFitness;
     if (view === 'Job Search') return task.isJobSearch;
+    if (view === 'Projects') return task.isProject;
     
-    // In "All Tasks" and "By Status", we hide Fitness, Grocery, and Job Search to keep the general list clean
+    // In "All Tasks" and "By Status", we hide Fitness, Grocery, Job Search, and Projects to keep the general list clean
     if (view === 'All Tasks' || view === 'By Status') {
-       return !task.isFitness && !task.isGrocery && !task.isJobSearch;
+       return !task.isFitness && !task.isGrocery && !task.isJobSearch && !task.isProject;
     }
     
     return true;
@@ -191,6 +195,7 @@ const App: React.FC = () => {
               { label: 'By Status', icon: IconLayout },
               { label: 'Fitness', icon: IconDumbbell },
               { label: 'Job Search', icon: IconBriefcase },
+              { label: 'Projects', icon: IconLightbulb },
               { label: 'Analytics', icon: IconBarChart },
             ].map((v) => (
               <button key={v.label} onClick={() => setView(v.label as ViewType)} className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors border-b-2 ${view === v.label ? 'border-white text-white font-medium' : 'border-transparent text-notion-muted hover:text-gray-300'}`}>
@@ -245,16 +250,24 @@ const App: React.FC = () => {
                 finalTask.isJobSearch = true;
                 finalTask.isFitness = false;
                 finalTask.isGrocery = false;
+                finalTask.isProject = false;
+              } else if (view === 'Projects') {
+                finalTask.isProject = true;
+                finalTask.isJobSearch = false;
+                finalTask.isFitness = false;
+                finalTask.isGrocery = false;
               } else {
                 // In other views, infer from the parsed data
                 // If Gemini found reps or isHomeWorkout, it's likely a fitness task
                 const isLikelyFitness = !!t.reps || !!t.isHomeWorkout || t.title.toLowerCase().includes('workout') || t.title.toLowerCase().includes('exercise');
                 const isLikelyGrocery = t.title.toLowerCase().includes('buy') || t.title.toLowerCase().includes('grocery') || t.title.toLowerCase().includes('shop');
                 const isLikelyJobSearch = t.title.toLowerCase().includes('job') || t.title.toLowerCase().includes('apply') || t.title.toLowerCase().includes('interview') || !!t.company;
+                const isLikelyProject = t.title.toLowerCase().includes('project') || t.title.toLowerCase().includes('idea') || t.title.toLowerCase().includes('build');
                 
                 finalTask.isFitness = isLikelyFitness;
                 finalTask.isGrocery = isLikelyGrocery;
                 finalTask.isJobSearch = isLikelyJobSearch;
+                finalTask.isProject = isLikelyProject;
                 
                 if (isLikelyFitness && !finalTask.category) {
                   finalTask.category = FitnessCategory.DAILY;
@@ -272,7 +285,9 @@ const App: React.FC = () => {
         ) : view === 'Fitness' ? (
            <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat, isFitness: true, isGrocery: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Job Search' ? (
-           <JobSearchBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Opportunity', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isJobSearch: true, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
+           <JobSearchBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isJobSearch: true, isFitness: false, isGrocery: false, isProject: false })} onDeleteTask={handleDeleteTask} />
+        ) : view === 'Projects' ? (
+           <ProjectsBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isProject: true, isJobSearch: false, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
         ) : (
@@ -286,7 +301,8 @@ const App: React.FC = () => {
              onAddTask={(s, title) => {
                const isGrocery = view === 'Grocery Run';
                const isJobSearch = view === 'Job Search';
-               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isGrocery, isJobSearch, isFitness: false });
+               const isProject = view === 'Projects';
+               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isGrocery, isJobSearch, isProject, isFitness: false });
              }} 
            />
         )}

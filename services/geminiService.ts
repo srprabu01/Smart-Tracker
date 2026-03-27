@@ -40,7 +40,9 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
       - Infer 'isHomeWorkout' if the context implies home equipment or bodyweight (e.g. "pushups", "yoga", "home workout").
       For job search tasks:
       - Extract 'company', 'role', 'salary', 'location', 'link' if mentioned.
-      - Infer 'isJobSearch' if it mentions applying, interviewing, or a company name.`,
+      - Infer 'isJobSearch' if it mentions applying, interviewing, or a company name.
+      For project tasks:
+      - Infer 'isProject' if it mentions a project, idea, building something, or a side hustle.`,
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -58,7 +60,9 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
             salary: { type: Type.STRING },
             location: { type: Type.STRING },
             link: { type: Type.STRING },
-            isJobSearch: { type: Type.BOOLEAN }
+            isJobSearch: { type: Type.BOOLEAN },
+            jobCount: { type: Type.INTEGER, description: "Number of jobs applied to" },
+            isProject: { type: Type.BOOLEAN }
           },
           required: ["title", "status", "frequency", "priority", "nextDue"]
         }

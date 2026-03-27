@@ -41,6 +41,7 @@ export interface Task {
   isFitness?: boolean; // Explicit flag for fitness tasks
   isGrocery?: boolean; // Explicit flag for grocery tasks
   isJobSearch?: boolean; // Explicit flag for job search tasks
+  isProject?: boolean; // Explicit flag for project tasks
   
   // Fitness specific fields
   reps?: string; // e.g. "3x12" or "30 mins"
@@ -54,6 +55,7 @@ export interface Task {
   location?: string;
   link?: string;
   notes?: string;
+  jobCount?: number; // Number of jobs applied to on this date
 }
 
 export interface SortOption {
@@ -62,4 +64,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Analytics';
+export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics';

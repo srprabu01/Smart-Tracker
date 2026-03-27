@@ -1,213 +1,149 @@
 import React, { useState } from 'react';
-import { Task, Status, Priority } from '../types';
-import { IconPlus, IconTrash, IconBriefcase, IconLink, IconMapPin, IconDollarSign, IconFileText } from './Icons';
+import { Task, Status, Priority, Frequency } from '../types';
+import { IconPlus, IconTrash, IconBriefcase, IconCalendar, IconCheckCircle } from './Icons';
 import { getLocalToday } from './TaskTable';
 
 interface JobSearchBoardProps {
   tasks: Task[];
   onUpdateTask: (task: Task) => void;
-  onAddTask: (status: Status) => void;
+  onAddTask: (task: Partial<Task>) => void;
   onDeleteTask: (taskId: string) => void;
 }
 
 const JobSearchBoard: React.FC<JobSearchBoardProps> = ({ tasks, onUpdateTask, onAddTask, onDeleteTask }) => {
-  const columns = [
-    { title: 'Wishlist', status: Status.TODO },
-    { title: 'Applied', status: Status.IN_PROGRESS },
-    { title: 'Interviewing', status: Status.IN_PROGRESS }, // We'll use status + category or just status for simplicity
-    { title: 'Offer/Done', status: Status.DONE },
-  ];
+  const today = getLocalToday();
+  const [newCount, setNewCount] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(today);
 
-  // For a more specialized job board, we might want custom statuses, 
-  // but for now we'll map them to the existing Status enum to keep it compatible with the rest of the app.
-  // We'll use the 'category' field to distinguish between 'Applied' and 'Interviewing' if they both use IN_PROGRESS.
+  // Filter and sort job search tasks by date (descending)
+  const jobSearchTasks = [...tasks]
+    .filter(t => t.isJobSearch)
+    .sort((a, b) => b.nextDue.localeCompare(a.nextDue));
 
-  const getColumnTasks = (status: Status, title: string) => {
-    return tasks.filter(t => {
-      if (title === 'Interviewing') return t.status === Status.IN_PROGRESS && t.category === 'Interviewing';
-      if (title === 'Applied') return t.status === Status.IN_PROGRESS && t.category !== 'Interviewing';
-      return t.status === status;
-    });
-  };
+  const handleAddLog = () => {
+    const count = parseInt(newCount);
+    if (isNaN(count)) return;
 
-  const handleDrop = (e: React.DragEvent, status: Status, title: string) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData('text/plain');
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      const updates: Partial<Task> = { status };
-      if (title === 'Interviewing') updates.category = 'Interviewing';
-      else if (title === 'Applied') updates.category = 'Applied';
-      else updates.category = undefined;
-      onUpdateTask({ ...task, ...updates });
+    // Check if we already have a log for this date
+    const existing = jobSearchTasks.find(t => t.nextDue === selectedDate);
+    if (existing) {
+      onUpdateTask({ ...existing, jobCount: (existing.jobCount || 0) + count });
+    } else {
+      onAddTask({
+        title: `Applied to ${count} jobs`,
+        jobCount: count,
+        nextDue: selectedDate,
+        status: Status.DONE,
+        priority: Priority.MEDIUM,
+        frequency: Frequency.ONCE,
+        isJobSearch: true,
+      });
     }
+    setNewCount('');
   };
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide">
-      {columns.map(col => (
-        <div 
-          key={col.title}
-          onDragOver={e => e.preventDefault()}
-          onDrop={e => handleDrop(e, col.status, col.title)}
-          className="flex flex-col min-w-[300px] w-full max-w-[350px]"
-        >
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">{col.title}</h3>
-              <span className="text-xs text-notion-muted bg-notion-border/30 px-2 py-0.5 rounded-full">
-                {getColumnTasks(col.status, col.title).length}
-              </span>
-            </div>
-            <button 
-              onClick={() => onAddTask(col.status)}
-              className="text-notion-muted hover:text-white hover:bg-notion-hover p-1 rounded transition-colors"
-            >
-              <IconPlus className="w-4 h-4" />
-            </button>
+    <div className="max-w-3xl mx-auto py-8 px-4">
+      <div className="bg-[#202020] rounded-xl p-8 border border-[#333] mb-8 shadow-2xl">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-blue-500/10 rounded-lg">
+            <IconBriefcase className="w-6 h-6 text-blue-400" />
           </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white">Daily Job Tracker</h2>
+            <p className="text-sm text-notion-muted">Log your daily applications to stay consistent.</p>
+          </div>
+        </div>
 
-          <div className="flex flex-col gap-3 min-h-[500px]">
-            {getColumnTasks(col.status, col.title).map(task => (
-              <JobCard 
-                key={task.id} 
-                task={task} 
-                onUpdate={onUpdateTask} 
-                onDelete={() => onDeleteTask(task.id)} 
+        <div className="flex flex-col sm:flex-row gap-4 items-end bg-[#2a2a2a] p-6 rounded-lg border border-[#333]">
+          <div className="flex-1 w-full">
+            <label className="block text-[10px] font-bold text-notion-muted uppercase mb-2 tracking-wider">Date</label>
+            <div className="relative">
+              <IconCalendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-notion-muted" />
+              <input 
+                type="date"
+                value={selectedDate}
+                onChange={e => setSelectedDate(e.target.value)}
+                className="w-full bg-[#1a1a1a] border border-[#444] rounded-md py-2 pl-10 pr-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
               />
-            ))}
-            <button 
-              onClick={() => onAddTask(col.status)}
-              className="flex items-center gap-2 text-notion-muted hover:text-notion-text hover:bg-notion-hover p-2 rounded text-sm transition-colors opacity-60 hover:opacity-100"
-            >
-              <IconPlus className="w-4 h-4" /> New
-            </button>
+            </div>
           </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-interface JobCardProps {
-  key?: string | number;
-  task: Task;
-  onUpdate: (t: Task) => void;
-  onDelete: () => void;
-}
-
-const JobCard = ({ task, onUpdate, onDelete }: JobCardProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-
-  if (isEditing) {
-    return (
-      <div className="bg-notion-sidebar border border-blue-500/50 rounded-lg p-4 shadow-xl animate-in fade-in zoom-in duration-200">
-        <input 
-          autoFocus
-          className="bg-transparent text-white font-bold text-sm w-full mb-2 outline-none border-b border-notion-border pb-1"
-          value={task.title}
-          onChange={e => onUpdate({ ...task, title: e.target.value })}
-          placeholder="Job Title"
-        />
-        <div className="space-y-2 mt-3">
-          <div className="flex items-center gap-2 text-xs text-notion-muted">
-            <IconBriefcase className="w-3 h-3" />
+          <div className="w-full sm:w-40">
+            <label className="block text-[10px] font-bold text-notion-muted uppercase mb-2 tracking-wider">Jobs Applied</label>
             <input 
-              className="bg-transparent w-full outline-none hover:bg-notion-hover rounded px-1"
-              value={task.company || ''}
-              onChange={e => onUpdate({ ...task, company: e.target.value })}
-              placeholder="Company"
+              type="number"
+              placeholder="e.g. 5"
+              value={newCount}
+              onChange={e => setNewCount(e.target.value)}
+              className="w-full bg-[#1a1a1a] border border-[#444] rounded-md py-2 px-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
             />
           </div>
-          <div className="flex items-center gap-2 text-xs text-notion-muted">
-            <IconMapPin className="w-3 h-3" />
-            <input 
-              className="bg-transparent w-full outline-none hover:bg-notion-hover rounded px-1"
-              value={task.location || ''}
-              onChange={e => onUpdate({ ...task, location: e.target.value })}
-              placeholder="Location"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-notion-muted">
-            <IconDollarSign className="w-3 h-3" />
-            <input 
-              className="bg-transparent w-full outline-none hover:bg-notion-hover rounded px-1"
-              value={task.salary || ''}
-              onChange={e => onUpdate({ ...task, salary: e.target.value })}
-              placeholder="Salary/Range"
-            />
-          </div>
-          <div className="flex items-center gap-2 text-xs text-notion-muted">
-            <IconLink className="w-3 h-3" />
-            <input 
-              className="bg-transparent w-full outline-none hover:bg-notion-hover rounded px-1"
-              value={task.link || ''}
-              onChange={e => onUpdate({ ...task, link: e.target.value })}
-              placeholder="Job Link"
-            />
-          </div>
-        </div>
-        <div className="flex justify-between mt-4">
-          <button onClick={onDelete} className="text-red-500/70 hover:text-red-500 text-[10px] font-bold uppercase">Delete</button>
-          <button onClick={() => setIsEditing(false)} className="bg-blue-600 text-white px-3 py-1 rounded text-[10px] font-bold uppercase">Done</button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      draggable
-      onDragStart={e => e.dataTransfer.setData('text/plain', task.id)}
-      onClick={() => setIsEditing(true)}
-      className="bg-notion-sidebar border border-notion-border rounded-lg p-3 hover:border-notion-muted transition-all cursor-pointer group shadow-sm"
-    >
-      <div className="flex justify-between items-start mb-2">
-        <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">{task.title}</h4>
-        <div className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-          task.priority === Priority.HIGH ? 'bg-red-500/10 text-red-500' :
-          task.priority === Priority.MEDIUM ? 'bg-orange-500/10 text-orange-500' :
-          'bg-blue-500/10 text-blue-500'
-        }`}>
-          {task.priority}
+          <button 
+            onClick={handleAddLog}
+            disabled={!newCount}
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-md text-sm transition-all flex items-center justify-center gap-2"
+          >
+            <IconPlus className="w-4 h-4" /> Log Applications
+          </button>
         </div>
       </div>
 
-      {task.company && (
-        <div className="flex items-center gap-2 text-xs text-notion-muted mb-1">
-          <IconBriefcase className="w-3 h-3" />
-          <span>{task.company}</span>
-        </div>
-      )}
-
-      {(task.location || task.salary) && (
-        <div className="flex gap-3 mt-2">
-          {task.location && (
-            <div className="flex items-center gap-1 text-[10px] text-notion-muted">
-              <IconMapPin className="w-3 h-3" />
-              <span>{task.location}</span>
-            </div>
-          )}
-          {task.salary && (
-            <div className="flex items-center gap-1 text-[10px] text-notion-muted">
-              <IconDollarSign className="w-3 h-3" />
-              <span>{task.salary}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {task.link && (
-        <a 
-          href={task.link} 
-          target="_blank" 
-          rel="noreferrer" 
-          onClick={e => e.stopPropagation()}
-          className="mt-3 flex items-center gap-1.5 text-[10px] text-blue-400 hover:underline"
-        >
-          <IconLink className="w-3 h-3" /> View Listing
-        </a>
-      )}
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold text-notion-muted uppercase tracking-widest px-1">Application History</h3>
+        {jobSearchTasks.length === 0 ? (
+          <div className="text-center py-12 bg-[#1a1a1a] rounded-xl border border-dashed border-[#333]">
+            <p className="text-notion-muted text-sm italic">No applications logged yet. Start your journey today!</p>
+          </div>
+        ) : (
+          <div className="bg-[#1a1a1a] rounded-xl border border-[#333] overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#252525] border-b border-[#333]">
+                  <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Date</th>
+                  <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Count</th>
+                  <th className="py-4 px-6 text-right text-[10px] font-bold text-notion-muted uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#333]">
+                {jobSearchTasks.map(task => (
+                  <tr key={task.id} className="hover:bg-[#202020] transition-colors group">
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                        <span className="text-sm font-medium text-white">
+                          {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric',
+                            year: 'numeric'
+                          })}
+                        </span>
+                        {task.nextDue === today && (
+                          <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-4 px-6">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-bold text-white">{task.jobCount || 0}</span>
+                        <span className="text-xs text-notion-muted">applications</span>
+                      </div>
+                    </td>
+                    <td className="py-4 px-6 text-right">
+                      <button 
+                        onClick={() => onDeleteTask(task.id)}
+                        className="text-notion-muted hover:text-red-400 p-2 rounded-md hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <IconTrash className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
