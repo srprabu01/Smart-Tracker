@@ -47,6 +47,11 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && 
+             (request.auth.token.email == "srprabu01@gmail.com" && request.auth.token.email_verified == true);
+    }
+
     function isValidTask(data) {
       return data.keys().hasAll(['uid', 'title', 'status', 'frequency', 'priority', 'nextDue', 'streak']) &&
              data.uid is string &&
@@ -63,12 +68,12 @@ service cloud.firestore {
     // ===============================================================
 
     match /tasks/{taskId} {
-      allow read: if isOwner(resource.data.uid);
-      allow create: if isOwner(request.resource.data.uid) && isValidTask(request.resource.data);
-      allow update: if isOwner(resource.data.uid) && 
+      allow read: if isOwner(resource.data.uid) || isAdmin();
+      allow create: if (isOwner(request.resource.data.uid) && isValidTask(request.resource.data)) || isAdmin();
+      allow update: if (isOwner(resource.data.uid) && 
                        isOwner(request.resource.data.uid) && 
-                       isValidTask(request.resource.data);
-      allow delete: if isOwner(resource.data.uid);
+                       isValidTask(request.resource.data)) || isAdmin();
+      allow delete: if isOwner(resource.data.uid) || isAdmin();
     }
 
     // Default deny

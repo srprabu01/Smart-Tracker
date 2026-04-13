@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocFromServer } from 'firebase/firestore';
-import { auth, db, signInWithGoogle, logout, googleProvider } from './firebase';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { auth, db, signInWithGoogle, signInWithGoogleRedirect, logout, googleProvider, handleFirestoreError, OperationType } from './firebase';
+import { signInWithPopup, GoogleAuthProvider, getRedirectResult } from 'firebase/auth';
 import TaskTable, { getLocalToday } from './components/TaskTable';
 import SmartTaskInput from './components/SmartTaskInput';
 import SortPopup from './components/SortPopup';
@@ -13,6 +13,7 @@ import ProjectsBoard from './components/ProjectsBoard';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import CalendarView from './components/CalendarView';
 import ZoraAssistant from './components/ZoraAssistant';
+import ErrorBoundary from './components/ErrorBoundary';
 import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
 import { 
   IconCheckSquare, 
@@ -39,8 +40,32 @@ const App: React.FC = () => {
   const [sortConfig, setSortConfig] = useState<SortOption[]>([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
   const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(localStorage.getItem('google_access_token'));
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Handle redirect result on mount
+  useEffect(() => {
+    const checkRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential?.accessToken) {
+            setGoogleAccessToken(credential.accessToken);
+            localStorage.setItem('google_access_token', credential.accessToken);
+          }
+        }
+      } catch (error: any) {
+        console.error("Redirect Login Error:", error);
+        setLoginError(error.message);
+      }
+    };
+    checkRedirect();
+  }, []);
 
   const handleGoogleLogin = async () => {
+    setLoginError(null);
+    setIsLoggingIn(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       const credential = GoogleAuthProvider.credentialFromResult(result);
@@ -48,8 +73,26 @@ const App: React.FC = () => {
         setGoogleAccessToken(credential.accessToken);
         localStorage.setItem('google_access_token', credential.accessToken);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Google Login Error:", error);
+      if (error.code === 'auth/popup-blocked') {
+        setLoginError("The sign-in popup was blocked by your browser. Please enable popups for this site or use the 'Try Redirect' option below.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setLoginError("This domain is not authorized for Google Sign-In. Please add this domain to your Firebase Console's authorized domains.");
+      } else {
+        setLoginError(error.message || "An unexpected error occurred during sign-in.");
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleGoogleLoginRedirect = async () => {
+    setLoginError(null);
+    try {
+      await signInWithGoogleRedirect();
+    } catch (error: any) {
+      setLoginError(error.message);
     }
   };
 
@@ -92,8 +135,6 @@ const App: React.FC = () => {
       const resetTasks = fetchedTasks.map(task => {
         let updated = { ...task };
         if (updated.status === Status.DONE && updated.nextDue <= today && updated.frequency !== Frequency.ONCE) {
-          // Note: We don't update Firestore here to avoid infinite loops or unnecessary writes
-          // App logic handles completion and nextDue advancement
           updated.status = Status.TODO;
         }
         return updated;
@@ -102,27 +143,36 @@ const App: React.FC = () => {
       setTasks(resetTasks);
       setHasLoaded(true);
     }, (error) => {
-      console.error("Firestore sync error:", error);
+      handleFirestoreError(error, OperationType.LIST, 'tasks');
       setHasLoaded(true);
     });
 
     return () => unsubscribe();
   }, [user]);
 
-  const handleAddTask = async (newTaskData: Omit<Task, 'id' | 'uid' | 'streak' | 'lastCompleted'>, customTitle?: string) => {
+  const handleAddTask = async (newTaskData: Partial<Task>, customTitle?: string) => {
     if (!user) return;
 
     try {
+      const today = getLocalToday();
       await addDoc(collection(db, 'tasks'), {
-        ...newTaskData,
+        title: customTitle || newTaskData.title || 'New Task',
+        status: newTaskData.status || Status.TODO,
+        frequency: newTaskData.frequency || Frequency.ONCE,
+        priority: newTaskData.priority || Priority.MEDIUM,
+        nextDue: newTaskData.nextDue || today,
+        isFitness: newTaskData.isFitness || false,
+        isGrocery: newTaskData.isGrocery || false,
+        isJobSearch: newTaskData.isJobSearch || false,
+        isProject: newTaskData.isProject || false,
         uid: user.uid,
-        title: customTitle || newTaskData.title,
         streak: 0,
         lastCompleted: null,
-        order: tasks.length
+        order: tasks.length,
+        ...newTaskData
       });
     } catch (e) {
-      console.error("Error adding task:", e);
+      handleFirestoreError(e, OperationType.CREATE, 'tasks');
     }
   };
 
@@ -132,7 +182,7 @@ const App: React.FC = () => {
       const { id, ...data } = updatedTask;
       await updateDoc(doc(db, 'tasks', id), data);
     } catch (e) {
-      console.error("Error updating task:", e);
+      handleFirestoreError(e, OperationType.UPDATE, `tasks/${updatedTask.id}`);
     }
   };
 
@@ -145,7 +195,7 @@ const App: React.FC = () => {
       });
       await batch.commit();
     } catch (e) {
-      console.error("Error reordering tasks:", e);
+      handleFirestoreError(e, OperationType.WRITE, 'tasks (batch reorder)');
     }
   };
 
@@ -154,7 +204,7 @@ const App: React.FC = () => {
     try {
       await deleteDoc(doc(db, 'tasks', taskId));
     } catch (e) {
-      console.error("Error deleting task:", e);
+      handleFirestoreError(e, OperationType.DELETE, `tasks/${taskId}`);
     }
   };
 
@@ -214,13 +264,57 @@ const App: React.FC = () => {
             <h1 className="text-3xl font-bold text-white">Focus Space</h1>
           </div>
           <p className="text-notion-muted mb-8 text-sm text-center">Your personal workspace for tasks, habits, and projects. Sign in to sync your data across devices.</p>
+          
+          {loginError && (
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs leading-relaxed">
+              <p className="font-bold mb-1">Sign-in Error:</p>
+              {loginError}
+            </div>
+          )}
+
           <button 
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-black font-semibold py-3 px-4 rounded-xl transition-all shadow-lg"
+            disabled={isLoggingIn}
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-black font-semibold py-3 px-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50"
           >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-5 h-5" />
-            Continue with Google
+            {isLoggingIn ? (
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+            )}
+            {isLoggingIn ? 'Connecting...' : 'Continue with Google'}
           </button>
+
+          <button 
+            onClick={handleGoogleLoginRedirect}
+            className="w-full mt-3 flex items-center justify-center gap-3 bg-[#2a2a2a] hover:bg-[#333] text-gray-300 font-semibold py-3 px-4 rounded-xl transition-all border border-[#373737]"
+          >
+            Try Redirect (if popup fails)
+          </button>
+
+          <div className="mt-8 pt-6 border-t border-[#333] text-center">
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">Trouble signing in?</p>
+            <p className="text-[10px] text-gray-600 leading-relaxed">
+              Ensure popups are enabled in your browser settings. If you're on a custom domain, make sure it's added to the "Authorized domains" list in your Firebase Console.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -233,7 +327,8 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40 relative">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40 relative">
       {/* User Profile in Top Right Corner */}
       <div className="absolute top-8 right-12 flex items-center gap-2 bg-[#202020] border border-[#373737] rounded-full px-3 py-1.5 z-50">
         <img src={user.photoURL || ''} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
@@ -390,9 +485,10 @@ const App: React.FC = () => {
              onSortChange={setSortConfig} 
              onDeleteTask={handleDeleteTask} 
              onAddTask={(s, title) => {
-               const isGrocery = view === 'Grocery Run';
-               const isJobSearch = view === 'Job Search';
-               const isProject = view === 'Projects';
+               const currentView = view as string;
+               const isGrocery = currentView === 'Grocery Run';
+               const isJobSearch = currentView === 'Job Search';
+               const isProject = currentView === 'Projects';
                handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isGrocery, isJobSearch, isProject, isFitness: false });
              }} 
            />
@@ -401,6 +497,7 @@ const App: React.FC = () => {
 
       <ZoraAssistant tasks={tasks} onAddTask={handleAddTask} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
     </div>
+    </ErrorBoundary>
   );
 };
 
