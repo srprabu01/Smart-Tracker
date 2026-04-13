@@ -266,6 +266,9 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
             <th onClick={() => handleHeaderClick('streak')} className="py-2 px-4 w-[80px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Streak <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
+            <th onClick={() => handleHeaderClick('showInCalendar')} className="py-2 px-4 w-[100px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+              <div className="flex items-center gap-2">In Calendar <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            </th>
             <th className="py-2 px-4 w-[50px] border-l border-notion-border text-center"><IconTrash className="w-3.5 h-3.5 mx-auto opacity-40" /></th>
           </tr>
         </thead>
@@ -303,11 +306,19 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
                 />
               </td>
               <td className="py-2 px-4 border-l border-notion-border/50">{task.streak > 0 ? <span className="text-orange-400 font-bold">🔥 {task.streak}</span> : '0'}</td>
+              <td className="py-2 px-4 border-l border-notion-border/50 text-center">
+                <button 
+                  onClick={() => onUpdateTask({ ...task, showInCalendar: !task.showInCalendar })}
+                  className={`w-8 h-4 rounded-full transition-colors relative ${task.showInCalendar ? 'bg-blue-600' : 'bg-[#373737]'}`}
+                >
+                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${task.showInCalendar ? 'left-4.5' : 'left-0.5'}`} />
+                </button>
+              </td>
               <td className="py-2 px-4 border-l border-notion-border/50 text-center"><button onClick={() => onDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400"><IconTrash className="w-4 h-4" /></button></td>
             </tr>
           ))}
           <tr className="border-b border-notion-border/50 group">
-             <td colSpan={9} className="p-0">
+             <td colSpan={10} className="p-0">
                 <div className="flex items-center px-4 py-2 gap-2 text-notion-muted group-hover:text-notion-text transition-colors">
                    <IconPlus className="w-4 h-4" />
                    <input 

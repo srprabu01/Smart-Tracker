@@ -1,4 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocFromServer } from 'firebase/firestore';
+import { auth, db, signInWithGoogle, logout, googleProvider } from './firebase';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import TaskTable, { getLocalToday } from './components/TaskTable';
 import SmartTaskInput from './components/SmartTaskInput';
 import SortPopup from './components/SortPopup';
@@ -7,6 +11,7 @@ import FitnessBoard from './components/FitnessBoard';
 import JobSearchBoard from './components/JobSearchBoard';
 import ProjectsBoard from './components/ProjectsBoard';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
+import CalendarView from './components/CalendarView';
 import ZoraAssistant from './components/ZoraAssistant';
 import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
 import { 
@@ -25,92 +30,132 @@ import {
   IconCalendar
 } from './components/Icons';
 
-const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Morning Routine', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 0, isFitness: false, isGrocery: false },
-  { id: '2', title: 'Lunch Break', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 1, isFitness: false, isGrocery: false },
-  { id: '3', title: '5 Min Plank', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.HIGH, nextDue: getLocalToday(), lastCompleted: null, streak: 0, category: FitnessCategory.DAILY, reps: '5 mins', isHomeWorkout: true, order: 2, isFitness: true, isGrocery: false },
-  { id: '4', title: 'Grocery Run', status: Status.TODO, frequency: Frequency.WEEKLY, priority: Priority.MEDIUM, nextDue: getLocalToday(), lastCompleted: null, streak: 0, order: 3, isFitness: false, isGrocery: true },
-];
-
 const App: React.FC = () => {
+  const [user, loadingAuth] = useAuthState(auth);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [view, setView] = useState<ViewType>('All Tasks');
   const [search, setSearch] = useState('');
   const [sortConfig, setSortConfig] = useState<SortOption[]>([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
+  const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(localStorage.getItem('google_access_token'));
 
-  // 1. Initial Data Load & Reset Engine
-  useEffect(() => {
+  const handleGoogleLogin = async () => {
     try {
-      const saved = localStorage.getItem('notion-tasks');
-      const today = getLocalToday();
-      let rawTasks = INITIAL_TASKS;
+      const result = await signInWithPopup(auth, googleProvider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        setGoogleAccessToken(credential.accessToken);
+        localStorage.setItem('google_access_token', credential.accessToken);
+      }
+    } catch (error) {
+      console.error("Google Login Error:", error);
+    }
+  };
 
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          rawTasks = parsed;
+  const handleDisconnectCalendar = () => {
+    setGoogleAccessToken(null);
+    localStorage.removeItem('google_access_token');
+  };
+
+  // 1. Test Connection
+  useEffect(() => {
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
         }
       }
+    }
+    testConnection();
+  }, []);
+
+  // 2. Real-time Firestore Sync
+  useEffect(() => {
+    if (!user) {
+      setTasks([]);
+      setHasLoaded(true);
+      return;
+    }
+
+    const q = query(collection(db, 'tasks'), where('uid', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const today = getLocalToday();
+      const fetchedTasks = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as Task[];
 
       // Auto-Reset completed tasks whose nextDue is Today or in the Past
-      const resetTasks = rawTasks.map(task => {
+      const resetTasks = fetchedTasks.map(task => {
         let updated = { ...task };
         if (updated.status === Status.DONE && updated.nextDue <= today && updated.frequency !== Frequency.ONCE) {
+          // Note: We don't update Firestore here to avoid infinite loops or unnecessary writes
+          // App logic handles completion and nextDue advancement
           updated.status = Status.TODO;
         }
         return updated;
       });
 
       setTasks(resetTasks);
-    } catch (e) {
-      console.error("Initialization failed:", e);
-      setTasks(INITIAL_TASKS);
-    } finally {
       setHasLoaded(true);
-    }
-  }, []);
-
-  // 2. Continuous Persistence
-  useEffect(() => { 
-    if (!hasLoaded) return; 
-    localStorage.setItem('notion-tasks', JSON.stringify(tasks)); 
-  }, [tasks, hasLoaded]);
-
-  const handleAddTask = (newTaskData: Omit<Task, 'id' | 'streak' | 'lastCompleted'>, customTitle?: string) => {
-    const newTask: Task = {
-      ...newTaskData,
-      title: customTitle || newTaskData.title,
-      id: Math.random().toString(36).substr(2, 9),
-      streak: 0,
-      lastCompleted: null,
-      order: tasks.length
-    };
-    setTasks(prev => [newTask, ...prev]);
-  };
-
-  const handleUpdateTask = (updatedTask: Task) => {
-    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
-  };
-
-  const handleReorderTasks = (reorderedTasks: Task[]) => {
-    setTasks(prev => {
-      // Create a map of the new orders for the tasks that were reordered
-      const newOrderMap = new Map(reorderedTasks.map((t, i) => [t.id, i]));
-      
-      // Update the tasks that were reordered, and keep the others as they were
-      return prev.map(task => {
-        if (newOrderMap.has(task.id)) {
-          return { ...task, order: newOrderMap.get(task.id) };
-        }
-        return task;
-      });
+    }, (error) => {
+      console.error("Firestore sync error:", error);
+      setHasLoaded(true);
     });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleAddTask = async (newTaskData: Omit<Task, 'id' | 'uid' | 'streak' | 'lastCompleted'>, customTitle?: string) => {
+    if (!user) return;
+
+    try {
+      await addDoc(collection(db, 'tasks'), {
+        ...newTaskData,
+        uid: user.uid,
+        title: customTitle || newTaskData.title,
+        streak: 0,
+        lastCompleted: null,
+        order: tasks.length
+      });
+    } catch (e) {
+      console.error("Error adding task:", e);
+    }
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+  const handleUpdateTask = async (updatedTask: Task) => {
+    if (!user) return;
+    try {
+      const { id, ...data } = updatedTask;
+      await updateDoc(doc(db, 'tasks', id), data);
+    } catch (e) {
+      console.error("Error updating task:", e);
+    }
+  };
+
+  const handleReorderTasks = async (reorderedTasks: Task[]) => {
+    if (!user) return;
+    try {
+      const batch = writeBatch(db);
+      reorderedTasks.forEach((t, i) => {
+        batch.update(doc(db, 'tasks', t.id), { order: i });
+      });
+      await batch.commit();
+    } catch (e) {
+      console.error("Error reordering tasks:", e);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, 'tasks', taskId));
+    } catch (e) {
+      console.error("Error deleting task:", e);
+    }
   };
 
   const today = getLocalToday();
@@ -147,7 +192,7 @@ const App: React.FC = () => {
     setTasks(resetOrder.map((t, i) => ({ ...t, order: i })));
   };
 
-  if (!hasLoaded) {
+  if (loadingAuth || !hasLoaded) {
     return (
       <div className="min-h-screen bg-notion-bg flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -158,8 +203,43 @@ const App: React.FC = () => {
     );
   }
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-notion-bg flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-[#202020] border border-[#373737] rounded-2xl p-8 shadow-2xl">
+          <div className="flex items-center justify-center gap-4 mb-8">
+            <div className="w-12 h-12 bg-notion-blue rounded-xl flex items-center justify-center text-white shadow-xl">
+              <IconCheckSquare className="w-8 h-8" />
+            </div>
+            <h1 className="text-3xl font-bold text-white">Focus Space</h1>
+          </div>
+          <p className="text-notion-muted mb-8 text-sm text-center">Your personal workspace for tasks, habits, and projects. Sign in to sync your data across devices.</p>
+          <button 
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-black font-semibold py-3 px-4 rounded-xl transition-all shadow-lg"
+          >
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-5 h-5" />
+            Continue with Google
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const handleLogout = () => {
+    setGoogleAccessToken(null);
+    localStorage.removeItem('google_access_token');
+    logout();
+  };
+
   return (
-    <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40">
+    <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40 relative">
+      {/* User Profile in Top Right Corner */}
+      <div className="absolute top-8 right-12 flex items-center gap-2 bg-[#202020] border border-[#373737] rounded-full px-3 py-1.5 z-50">
+        <img src={user.photoURL || ''} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
+        <span className="text-xs font-medium text-gray-300">{user.displayName}</span>
+        <button onClick={handleLogout} className="text-[10px] text-red-400 hover:text-red-300 ml-2 font-bold uppercase tracking-wider">Sign Out</button>
+      </div>
       <header className="px-12 pt-12">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 bg-notion-blue rounded flex items-center justify-center text-white shadow-xl">
@@ -197,6 +277,7 @@ const App: React.FC = () => {
               { label: 'Job Search', icon: IconBriefcase },
               { label: 'Projects', icon: IconLightbulb },
               { label: 'Analytics', icon: IconBarChart },
+              { label: 'Calendar', icon: IconCalendar },
             ].map((v) => (
               <button key={v.label} onClick={() => setView(v.label as ViewType)} className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors border-b-2 ${view === v.label ? 'border-white text-white font-medium' : 'border-transparent text-notion-muted hover:text-gray-300'}`}>
                 <v.icon className="w-4 h-4" /> {v.label}
@@ -234,7 +315,8 @@ const App: React.FC = () => {
               Reset
             </button>
           </div>
-          <SmartTaskInput 
+          <div className="flex items-center gap-4">
+            <SmartTaskInput 
             onAddTask={(t) => {
               let finalTask = { ...t };
               // If we're in a specific view, force the flag
@@ -276,6 +358,7 @@ const App: React.FC = () => {
               handleAddTask(finalTask);
             }} 
           />
+          </div>
         </div>
       </header>
 
@@ -290,6 +373,14 @@ const App: React.FC = () => {
            <ProjectsBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isProject: true, isJobSearch: false, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
+        ) : view === 'Calendar' ? (
+            <CalendarView 
+              tasks={tasks} 
+              onUpdateTask={handleUpdateTask} 
+              googleAccessToken={googleAccessToken}
+              onConnectGoogle={handleGoogleLogin}
+              onDisconnectGoogle={handleDisconnectCalendar}
+            />
         ) : (
            <TaskTable 
              tasks={filteredTasks} 

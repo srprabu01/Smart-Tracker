@@ -5,7 +5,7 @@ import { IconMic, IconSparkles } from './Icons.tsx';
 
 interface ZoraAssistantProps {
   tasks: Task[];
-  onAddTask: (task: Omit<Task, 'id' | 'streak' | 'lastCompleted'>) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'uid' | 'streak' | 'lastCompleted'>) => void;
   onUpdateTask: (task: Task) => void;
   onDeleteTask: (id: string) => void;
 }
@@ -177,7 +177,8 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
               location: { type: Type.STRING },
               salary: { type: Type.STRING },
               jobCount: { type: Type.INTEGER, description: "Number of jobs applied to" },
-              isProject: { type: Type.BOOLEAN, description: "True if this is a project idea or development task" }
+              isProject: { type: Type.BOOLEAN, description: "True if this is a project idea or development task" },
+              showInCalendar: { type: Type.BOOLEAN, description: "True if this task should appear in the calendar view" }
             },
             required: ['title', 'status', 'frequency', 'priority', 'nextDue']
           }
@@ -199,7 +200,7 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
       const sessionPromise = ai.live.connect({
         model: 'gemini-3.1-flash-live-preview',
         config: {
-          systemInstruction: "You are Zora, a helpful and efficient personal task manager assistant. You have full access to the user's task app. Always be concise. Confirm actions verbally.",
+          systemInstruction: "You are Zora, a helpful and efficient personal task manager assistant. You have full access to the user's task app. Always be concise. Confirm actions verbally. \n\nWhen adding tasks, infer a reasonable frequency if the user doesn't specify one: \n- Use 'Daily' for habits (e.g., bath, meditation, reading).\n- Use 'Weekly' for recurring chores (e.g., laundry, cleaning).\n- Use 'Once' for specific one-time events.\n- Default to 'Once' if unsure.",
           tools: [{ functionDeclarations: tools }],
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -250,7 +251,8 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
                             location: fc.args.location as string,
                             salary: fc.args.salary as string,
                             jobCount: fc.args.jobCount as number,
-                            isProject: (fc.args.isProject as boolean) || false
+                            isProject: (fc.args.isProject as boolean) || false,
+                            showInCalendar: (fc.args.showInCalendar as boolean) || false
                         });
                         result = { result: "Task added" };
                     } else if (fc.name === 'updateTaskStatus') {

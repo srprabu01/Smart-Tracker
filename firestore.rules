@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: tasks
+    // Document ID: {taskId}
+    // Fields:
+    //   - uid: string (required) - Owner's user ID
+    //   - title: string (required) - Task title
+    //   - status: string (required, enum) - To Do, In Progress, Done
+    //   - frequency: string (required, enum) - Daily, Weekdays, Weekly, Biweekly, Monthly, Once
+    //   - priority: string (required, enum) - High, Medium, Low
+    //   - nextDue: string (required, date format) - Next due date
+    //   - lastCompleted: string (optional, date format) - Last completion date
+    //   - streak: number (required) - Current streak count
+    //   - category: string (optional)
+    //   - order: number (optional)
+    //   - isFitness: boolean (optional)
+    //   - isGrocery: boolean (optional)
+    //   - isJobSearch: boolean (optional)
+    //   - isProject: boolean (optional)
+    //   - reps: string (optional)
+    //   - videoUrl: string (optional)
+    //   - isHomeWorkout: boolean (optional)
+    //   - company: string (optional)
+    //   - role: string (optional)
+    //   - salary: string (optional)
+    //   - location: string (optional)
+    //   - link: string (optional)
+    //   - notes: string (optional)
+    //   - jobCount: number (optional)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['uid', 'title', 'status', 'frequency', 'priority', 'nextDue', 'streak']) &&
+             data.uid is string &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.status in ['To Do', 'In Progress', 'Done'] &&
+             data.frequency in ['Daily', 'Weekdays', 'Weekly', 'Biweekly', 'Monthly', 'Once'] &&
+             data.priority in ['High', 'Medium', 'Low'] &&
+             data.nextDue is string && data.nextDue.matches('^\\d{4}-\\d{2}-\\d{2}.*') &&
+             data.streak is number && data.streak >= 0;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /tasks/{taskId} {
+      allow read: if isOwner(resource.data.uid);
+      allow create: if isOwner(request.resource.data.uid) && isValidTask(request.resource.data);
+      allow update: if isOwner(resource.data.uid) && 
+                       isOwner(request.resource.data.uid) && 
+                       isValidTask(request.resource.data);
+      allow delete: if isOwner(resource.data.uid);
+    }
+
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

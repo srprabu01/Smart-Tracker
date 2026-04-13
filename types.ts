@@ -29,6 +29,7 @@ export enum FitnessCategory {
 
 export interface Task {
   id: string;
+  uid: string;
   title: string;
   status: Status;
   frequency: Frequency;
@@ -42,6 +43,7 @@ export interface Task {
   isGrocery?: boolean; // Explicit flag for grocery tasks
   isJobSearch?: boolean; // Explicit flag for job search tasks
   isProject?: boolean; // Explicit flag for project tasks
+  showInCalendar?: boolean; // If true, task appears in calendar view
   
   // Fitness specific fields
   reps?: string; // e.g. "3x12" or "30 mins"
@@ -64,4 +66,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics';
+export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics' | 'Calendar';

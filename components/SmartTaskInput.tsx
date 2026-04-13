@@ -4,7 +4,7 @@ import { parseTaskFromInput, transcribeAudio } from '../services/geminiService.t
 import { Task } from '../types.ts';
 
 interface SmartTaskInputProps {
-  onAddTask: (task: Omit<Task, 'id' | 'streak' | 'lastCompleted'>) => void;
+  onAddTask: (task: Omit<Task, 'id' | 'uid' | 'streak' | 'lastCompleted'>) => void;
 }
 
 const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {

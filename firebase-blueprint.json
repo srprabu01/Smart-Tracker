@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "A task, workout, job application, or project idea.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user ID of the owner." },
+        "title": { "type": "string" },
+        "status": { "type": "string", "enum": ["To Do", "In Progress", "Done"] },
+        "frequency": { "type": "string", "enum": ["Daily", "Weekdays", "Weekly", "Biweekly", "Monthly", "Once"] },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low"] },
+        "nextDue": { "type": "string", "format": "date" },
+        "lastCompleted": { "type": "string", "format": "date" },
+        "streak": { "type": "number" },
+        "category": { "type": "string" },
+        "order": { "type": "number" },
+        "isFitness": { "type": "boolean" },
+        "isGrocery": { "type": "boolean" },
+        "isJobSearch": { "type": "boolean" },
+        "isProject": { "type": "boolean" },
+        "reps": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "isHomeWorkout": { "type": "boolean" },
+        "company": { "type": "string" },
+        "role": { "type": "string" },
+        "salary": { "type": "string" },
+        "location": { "type": "string" },
+        "link": { "type": "string" },
+        "notes": { "type": "string" },
+        "jobCount": { "type": "number" }
+      },
+      "required": ["uid", "title", "status", "frequency", "priority", "nextDue", "streak"]
+    }
+  },
+  "firestore": {
+    "/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Collection of all tasks."
+    }
+  }
+}

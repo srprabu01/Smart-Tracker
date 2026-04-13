@@ -61,10 +61,15 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
       contents: `Current Date: ${today}. User input: "${input}". 
       Extract task details. If specific info is missing, infer reasonable defaults based on context. 
       Default Status: To Do. 
-      Default Frequency: Once (unless implied otherwise like "every day"). 
       Default Priority: Medium.
-      "Every weekday" or "weekdays" -> Frequency: Weekdays.
-      "Every 2 weeks" or "biweekly" -> Frequency: Biweekly.
+      
+      Frequency Inference:
+      - Infer "Daily" for recurring personal habits (e.g., "bath", "brush teeth", "meditate", "exercise").
+      - Infer "Weekly" for chores (e.g., "laundry", "clean room", "grocery shopping").
+      - Default to "Once" only if it sounds like a specific one-time event or if unsure.
+      - "Every weekday" or "weekdays" -> Frequency: Weekdays.
+      - "Every 2 weeks" or "biweekly" -> Frequency: Biweekly.
+      
       Next Due should be YYYY-MM-DD format based on "today", "tomorrow", "next friday", etc.
       For fitness tasks:
       - Look for "reps", "sets", "minutes" for the 'reps' field (e.g. "3 sets of 10", "30 mins").
