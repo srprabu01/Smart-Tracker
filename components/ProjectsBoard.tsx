@@ -34,13 +34,13 @@ const ProjectsBoard: React.FC<ProjectsBoardProps> = ({ tasks, onUpdateTask, onAd
   };
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-8 scrollbar-hide px-4 lg:px-0">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8 px-4 lg:px-0">
       {columns.map(col => (
         <div 
           key={col.title}
           onDragOver={e => e.preventDefault()}
           onDrop={e => handleDrop(e, col.status)}
-          className="flex flex-col min-w-[320px] w-full max-w-[400px] bg-[#1a1a1a]/50 rounded-xl p-4 border border-[#333]"
+          className="flex flex-col w-full bg-[#1a1a1a]/50 rounded-xl p-4 border border-[#333]"
         >
           <div className="flex items-center justify-between mb-6 px-1">
             <div className="flex items-center gap-3">
@@ -98,6 +98,24 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
           placeholder="Project Title"
           onKeyDown={e => e.key === 'Enter' && setIsEditing(false)}
         />
+        <div className="flex gap-2 mb-4">
+          {Object.values(Priority).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => onUpdate({ ...task, priority: p })}
+              className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-tighter transition-all ${
+                task.priority === p
+                  ? p === Priority.HIGH ? 'bg-red-500 text-white' :
+                    p === Priority.MEDIUM ? 'bg-orange-500 text-white' :
+                    'bg-blue-500 text-white'
+                  : 'bg-[#1a1a1a] text-notion-muted border border-[#444] hover:border-[#666]'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
         <textarea 
           className="bg-[#1a1a1a] text-notion-muted text-sm w-full h-24 p-3 rounded-lg outline-none border border-[#444] focus:border-blue-500 transition-colors resize-none mb-4"
           value={task.notes || ''}

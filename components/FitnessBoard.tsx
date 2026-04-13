@@ -98,6 +98,7 @@ const WorkoutModal = ({
     const [reps, setReps] = useState(task.reps || '');
     const [videoUrl, setVideoUrl] = useState(task.videoUrl || '');
     const [isHome, setIsHome] = useState(task.isHomeWorkout || false);
+    const [priority, setPriority] = useState(task.priority);
 
     const handleSave = () => {
         onSave({
@@ -105,7 +106,8 @@ const WorkoutModal = ({
             title,
             reps,
             videoUrl,
-            isHomeWorkout: isHome
+            isHomeWorkout: isHome,
+            priority
         });
         onClose();
     };
@@ -139,6 +141,27 @@ const WorkoutModal = ({
                         </div>
                     </div>
                     <div>
+                        <label className="block text-xs text-gray-500 mb-2 uppercase font-bold">Priority</label>
+                        <div className="flex gap-2">
+                            {Object.values(Priority).map((p) => (
+                                <button
+                                    key={p}
+                                    type="button"
+                                    onClick={() => setPriority(p)}
+                                    className={`flex-1 text-[10px] py-2 rounded font-bold uppercase tracking-tighter transition-all border ${
+                                        priority === p
+                                            ? p === Priority.HIGH ? 'bg-red-500/20 border-red-500 text-red-500' :
+                                              p === Priority.MEDIUM ? 'bg-orange-500/20 border-orange-500 text-orange-500' :
+                                              'bg-blue-500/20 border-blue-500 text-blue-500'
+                                            : 'bg-[#191919] border-[#373737] text-gray-500 hover:border-gray-500'
+                                    }`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
                         <label className="block text-xs text-gray-500 mb-1 uppercase font-bold">Video Tutorial URL</label>
                         <input type="text" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/..." className="w-full bg-[#191919] border border-[#373737] rounded p-2 text-white focus:border-blue-500 outline-none text-sm" />
                     </div>
@@ -165,7 +188,7 @@ const FitnessColumn: React.FC<FitnessColumnProps> = ({
   };
   return (
     <div 
-      className={`flex flex-col min-w-[280px] w-full max-w-[400px] rounded-md transition-colors ${isOver ? 'bg-[#252525]' : ''}`}
+      className={`flex flex-col w-full rounded-md transition-colors ${isOver ? 'bg-[#252525]' : ''}`}
       onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
     >
       <div className="flex items-center gap-2 mb-3 px-1 pt-2 border-b border-[#373737] pb-2">
@@ -244,7 +267,7 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
             </div>
             <div className="w-full bg-[#333] rounded-full h-3 overflow-hidden"><div className="bg-gradient-to-r from-blue-600 to-cyan-500 h-full transition-all duration-500" style={{ width: `${progress}%` }}></div></div>
         </div>
-        <div className="flex flex-col lg:flex-row gap-6 items-start pb-10 overflow-x-auto scrollbar-hide">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 pb-10">
             {categories.map(cat => (
                 <FitnessColumn 
                     key={cat} 
