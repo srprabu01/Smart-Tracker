@@ -34,6 +34,7 @@ const AVAILABLE_COLUMNS: (keyof Task)[] = [
 
 const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [draggedIndex, setDraggedIndex] = React.useState<number | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,6 +65,27 @@ const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
     onChange(sorts.map(s => s.id === id ? { ...s, ...updates } : s));
   };
 
+  const onDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const onDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+  };
+
+  const onDrop = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const newSorts = [...sorts];
+    const [draggedItem] = newSorts.splice(draggedIndex, 1);
+    newSorts.splice(index, 0, draggedItem);
+    
+    onChange(newSorts);
+    setDraggedIndex(null);
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -76,10 +98,19 @@ const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
             <div className="px-2 py-2 text-sm text-gray-500 italic">No active sorts</div>
         )}
 
-        {sorts.map((sort) => (
-          <div key={sort.id} className="flex items-center gap-2 px-2 py-1 group">
+        {sorts.map((sort, index) => (
+          <div 
+            key={sort.id} 
+            onDragOver={(e) => onDragOver(e, index)}
+            onDrop={(e) => onDrop(e, index)}
+            className={`flex items-center gap-2 px-2 py-1 group transition-all ${draggedIndex === index ? 'opacity-30' : ''} ${draggedIndex !== null && draggedIndex !== index ? 'hover:bg-[#2c2c2c]' : ''}`}
+          >
              {/* Grip */}
-             <div className="text-gray-600 cursor-grab hover:text-gray-400">
+             <div 
+                draggable
+                onDragStart={(e) => onDragStart(e, index)}
+                className="text-gray-600 cursor-grab active:cursor-grabbing hover:text-gray-400 p-1"
+             >
                 <IconGripVertical className="w-4 h-4" />
              </div>
 

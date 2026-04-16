@@ -158,9 +158,17 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const sortedTasks = useMemo(() => {
-    // If we have an active sort configuration, we prioritize it
-    if (sortConfig.length > 0) {
-      return [...tasks].sort((a, b) => {
+    const baseSort = [...tasks].sort((a, b) => {
+      // 1. Always push DONE to the bottom unless explicitly sorting by status
+      const isExplicitStatusSort = sortConfig.some(s => s.key === 'status');
+      if (!isExplicitStatusSort) {
+        const doneA = a.status === Status.DONE ? 1 : 0;
+        const doneB = b.status === Status.DONE ? 1 : 0;
+        if (doneA !== doneB) return doneA - doneB;
+      }
+
+      // 2. Apply user sorts
+      if (sortConfig.length > 0) {
         for (const sort of sortConfig) {
           const { key, direction } = sort;
           const valA = a[key]; const valB = b[key];
@@ -172,11 +180,12 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
           else comp = String(valA || '').localeCompare(String(valB || ''));
           if (comp !== 0) return direction === 'asc' ? comp : -comp;
         }
-        return 0;
-      });
-    }
-    // Otherwise, use manual order
-    return [...tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      }
+
+      // 3. Fallback to manual order
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
+    return baseSort;
   }, [tasks, sortConfig]);
 
   const handleHeaderClick = (key: keyof Task) => {
@@ -276,14 +285,18 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
           {sortedTasks.map((task, index) => (
             <tr 
               key={task.id} 
-              draggable={sortConfig.length === 0}
-              onDragStart={(e) => onDragStart(e, index)}
               onDragOver={(e) => onDragOver(e, index)}
               onDrop={(e) => onDrop(e, index)}
               className={`group hover:bg-notion-hover border-b border-notion-border/50 ${draggedIndex === index ? 'opacity-30' : ''}`}
             >
-              <td className="py-2 px-2 cursor-grab active:cursor-grabbing">
-                <IconGripVertical className="w-4 h-4 text-gray-700 group-hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <td className="py-2 px-2">
+                <div 
+                  draggable
+                  onDragStart={(e) => onDragStart(e, index)}
+                  className="cursor-grab active:cursor-grabbing p-1"
+                >
+                  <IconGripVertical className="w-4 h-4 text-gray-700 group-hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
               </td>
               <td className="py-2 px-2 flex items-center gap-2"><IconFileText className="w-4 h-4 text-notion-muted" /> {task.title}</td>
               <td className="py-2 px-4 border-l border-notion-border/50"><StatusCell task={task} onChange={(s) => handleStatusChange(task, s)} /></td>
