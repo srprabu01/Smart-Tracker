@@ -18,7 +18,7 @@ const JobSearchBoard: React.FC<JobSearchBoardProps> = ({ tasks, onUpdateTask, on
   // Filter and sort job search tasks by date (descending)
   const jobSearchTasks = [...tasks]
     .filter(t => t.isJobSearch)
-    .sort((a, b) => b.nextDue.localeCompare(a.nextDue));
+    .sort((a, b) => (b.nextDue || '').localeCompare(a.nextDue || ''));
 
   const handleAddLog = () => {
     const count = parseInt(newCount);
@@ -96,51 +96,85 @@ const JobSearchBoard: React.FC<JobSearchBoardProps> = ({ tasks, onUpdateTask, on
           </div>
         ) : (
           <div className="bg-[#1a1a1a] rounded-xl border border-[#333] overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#252525] border-b border-[#333]">
-                  <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Date</th>
-                  <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Count</th>
-                  <th className="py-4 px-6 text-right text-[10px] font-bold text-notion-muted uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#333]">
-                {jobSearchTasks.map(task => (
-                  <tr key={task.id} className="hover:bg-[#202020] transition-colors group">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                        <span className="text-sm font-medium text-white">
-                          {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            month: 'short', 
-                            day: 'numeric',
-                            year: 'numeric'
-                          })}
-                        </span>
-                        {task.nextDue === today && (
-                          <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-bold text-white">{task.jobCount || 0}</span>
-                        <span className="text-xs text-notion-muted">applications</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-right">
-                      <button 
-                        onClick={() => onDeleteTask(task.id)}
-                        className="text-notion-muted hover:text-red-400 p-2 rounded-md hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <IconTrash className="w-4 h-4" />
-                      </button>
-                    </td>
+            {/* Desktop Table */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#252525] border-b border-[#333]">
+                    <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Date</th>
+                    <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Count</th>
+                    <th className="py-4 px-6 text-right text-[10px] font-bold text-notion-muted uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[#333]">
+                  {jobSearchTasks.map(task => (
+                    <tr key={task.id} className="hover:bg-[#202020] transition-colors group">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                          <span className="text-sm font-medium text-white">
+                            {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
+                              weekday: 'short', 
+                              month: 'short', 
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </span>
+                          {task.nextDue === today && (
+                            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-white">{task.jobCount || 0}</span>
+                          <span className="text-xs text-notion-muted">applications</span>
+                        </div>
+                      </td>
+                      <td className="py-4 px-6 text-right">
+                        <button 
+                          onClick={() => onDeleteTask(task.id)}
+                          className="text-notion-muted hover:text-red-400 p-2 rounded-md hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          <IconTrash className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="sm:hidden divide-y divide-[#333]">
+              {jobSearchTasks.map(task => (
+                <div key={task.id} className="p-4 flex justify-between items-center bg-[#1a1a1a]">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                      <span className="text-sm font-medium text-white">
+                        {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric'
+                        })}
+                      </span>
+                      {task.nextDue === today && (
+                        <span className="text-[8px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
+                      )}
+                    </div>
+                    <div className="text-xs text-notion-muted">
+                      <span className="font-bold text-white pr-1">{task.jobCount || 0}</span> applications
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => onDeleteTask(task.id)}
+                    className="text-notion-muted hover:text-red-400 p-2 rounded-md"
+                  >
+                    <IconTrash className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

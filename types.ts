@@ -43,6 +43,7 @@ export interface Task {
   isGrocery?: boolean; // Explicit flag for grocery tasks
   isJobSearch?: boolean; // Explicit flag for job search tasks
   isProject?: boolean; // Explicit flag for project tasks
+  isWeeklyTracker?: boolean; // Explicit flag for weekly fitness tracker
   showInCalendar?: boolean; // If true, task appears in calendar view
   
   // Fitness specific fields
@@ -58,6 +59,10 @@ export interface Task {
   link?: string;
   notes?: string;
   jobCount?: number; // Number of jobs applied to on this date
+  
+  // Schedule specific fields
+  scheduledTime?: string | null; // e.g. "09:00"
+  scheduledDuration?: number | null; // minutes
 }
 
 export interface SortOption {
@@ -66,4 +71,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics' | 'Calendar';
+export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics' | 'Calendar' | 'Schedule';

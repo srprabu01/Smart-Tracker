@@ -12,6 +12,7 @@ import JobSearchBoard from './components/JobSearchBoard';
 import ProjectsBoard from './components/ProjectsBoard';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import CalendarView from './components/CalendarView';
+import ScheduleView from './components/ScheduleView';
 import ZoraAssistant from './components/ZoraAssistant';
 import ErrorBoundary from './components/ErrorBoundary';
 import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
@@ -28,14 +29,15 @@ import {
   IconLightbulb,
   IconBarChart,
   IconSparkles,
-  IconCalendar
+  IconCalendar,
+  IconClock
 } from './components/Icons';
 
 const App: React.FC = () => {
   const [user, loadingAuth] = useAuthState(auth);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const [view, setView] = useState<ViewType>('All Tasks');
+  const [view, setView] = useState<ViewType>('Schedule');
   const [search, setSearch] = useState('');
   const [sortConfig, setSortConfig] = useState<SortOption[]>([]);
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
@@ -229,17 +231,22 @@ const App: React.FC = () => {
     
     // In "All Tasks" and "By Status", we hide Fitness, Grocery, Job Search, and Projects to keep the general list clean
     if (view === 'All Tasks' || view === 'By Status') {
-       return !task.isFitness && !task.isGrocery && !task.isJobSearch && !task.isProject;
+       return !task.isFitness && !task.isGrocery && !task.isJobSearch && !task.isProject && !task.isWeeklyTracker;
     }
     
     return true;
   });
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setSearch('');
     setSortConfig([]);
-    const resetOrder = [...tasks].sort((a, b) => (a.id > b.id ? 1 : -1));
-    setTasks(resetOrder.map((t, i) => ({ ...t, order: i })));
+    // Correctly reset the 'order' field for all tasks to be sequential in Firestore
+    const batch = writeBatch(db);
+    const sorted = [...tasks].sort((a, b) => (a.id > b.id ? 1 : -1));
+    sorted.forEach((task, index) => {
+      batch.update(doc(db, 'tasks', task.id), { order: index });
+    });
+    await batch.commit();
   };
 
   if (loadingAuth || !hasLoaded) {
@@ -330,12 +337,12 @@ const App: React.FC = () => {
     <ErrorBoundary>
       <div className="min-h-screen bg-notion-bg text-notion-text font-sans pb-40 relative">
       {/* User Profile in Top Right Corner */}
-      <div className="absolute top-8 right-12 flex items-center gap-2 bg-[#202020] border border-[#373737] rounded-full px-3 py-1.5 z-50">
+      <div className="absolute top-4 right-4 md:top-8 md:right-12 flex items-center gap-2 bg-[#202020] border border-[#373737] rounded-full px-3 py-1.5 z-50">
         <img src={user.photoURL || ''} alt={user.displayName || ''} className="w-6 h-6 rounded-full" />
-        <span className="text-xs font-medium text-gray-300">{user.displayName}</span>
+        <span className="text-xs font-medium text-gray-300 hidden sm:inline">{user.displayName}</span>
         <button onClick={handleLogout} className="text-[10px] text-red-400 hover:text-red-300 ml-2 font-bold uppercase tracking-wider">Sign Out</button>
       </div>
-      <header className="px-12 pt-12">
+      <header className="px-4 md:px-12 pt-8 md:pt-12">
         <div className="flex items-center gap-3 mb-8">
           <div className="w-10 h-10 bg-notion-blue rounded flex items-center justify-center text-white shadow-xl">
             <IconCheckSquare className="w-6 h-6" />
@@ -362,30 +369,31 @@ const App: React.FC = () => {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-b border-notion-border">
-          <div className="flex gap-4">
+        <div className="flex items-center justify-between border-b border-notion-border overflow-x-auto no-scrollbar">
+          <div className="flex gap-2 md:gap-4 flex-nowrap">
             {[
               { label: 'All Tasks', icon: IconList },
-              { label: 'Grocery Run', icon: IconShoppingCart },
-              { label: 'By Status', icon: IconLayout },
+              { label: 'Schedule', icon: IconClock },
+              { label: 'Calendar', icon: IconCalendar },
+              { label: 'Analytics', icon: IconBarChart },
+              { label: 'Projects', icon: IconLightbulb },
               { label: 'Fitness', icon: IconDumbbell },
               { label: 'Job Search', icon: IconBriefcase },
-              { label: 'Projects', icon: IconLightbulb },
-              { label: 'Analytics', icon: IconBarChart },
-              { label: 'Calendar', icon: IconCalendar },
+              { label: 'Grocery Run', icon: IconShoppingCart },
+              { label: 'By Status', icon: IconLayout },
             ].map((v) => (
-              <button key={v.label} onClick={() => setView(v.label as ViewType)} className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors border-b-2 ${view === v.label ? 'border-white text-white font-medium' : 'border-transparent text-notion-muted hover:text-gray-300'}`}>
+              <button key={v.label} onClick={() => setView(v.label as ViewType)} className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors border-b-2 whitespace-nowrap ${view === v.label ? 'border-white text-white font-medium' : 'border-transparent text-notion-muted hover:text-gray-300'}`}>
                 <v.icon className="w-4 h-4" /> {v.label}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-4">
-            <div className="relative">
+        <div className="flex flex-col md:flex-row md:items-center justify-between py-4 gap-4">
+          <div className="flex flex-wrap items-center gap-3 md:gap-4">
+            <div className="relative flex-1 md:flex-none min-w-[150px]">
               <IconSearch className="w-4 h-4 text-notion-muted absolute left-2 top-1/2 -translate-y-1/2" />
-              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border border-transparent hover:border-notion-border focus:border-blue-500 rounded px-2 py-1 pl-8 text-sm outline-none w-48 transition-colors" />
+              <input type="text" placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="bg-transparent border border-transparent hover:border-notion-border focus:border-blue-500 rounded px-2 py-1 pl-8 text-sm outline-none w-full md:w-48 transition-colors" />
             </div>
 
             <div className="relative">
@@ -394,7 +402,7 @@ const App: React.FC = () => {
                 className={`flex items-center gap-2 px-2 py-1 rounded text-sm transition-all ${sortConfig.length > 0 ? 'text-blue-500 bg-blue-500/10' : 'text-notion-muted hover:bg-notion-hover'}`}
               >
                 <IconSort className="w-4 h-4" />
-                Sort {sortConfig.length > 0 && `(${sortConfig.length})`}
+                <span className="hidden sm:inline">Sort</span> {sortConfig.length > 0 && `(${sortConfig.length})`}
               </button>
               {isSortMenuOpen && (
                 <SortPopup 
@@ -407,10 +415,10 @@ const App: React.FC = () => {
 
             <button onClick={handleReset} className="text-notion-muted hover:bg-notion-hover px-2 py-1 rounded text-sm flex items-center gap-2">
               <IconRotateCcw className="w-4 h-4" /> 
-              Reset
+              <span className="hidden sm:inline">Reset</span>
             </button>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="w-full md:w-auto">
             <SmartTaskInput 
             onAddTask={(t) => {
               let finalTask = { ...t };
@@ -457,7 +465,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="px-12">
+      <main className="px-4 md:px-12">
         {view === 'By Status' ? (
            <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isFitness: false, isGrocery: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Fitness' ? (
@@ -475,6 +483,13 @@ const App: React.FC = () => {
               googleAccessToken={googleAccessToken}
               onConnectGoogle={handleGoogleLogin}
               onDisconnectGoogle={handleDisconnectCalendar}
+            />
+        ) : view === 'Schedule' ? (
+            <ScheduleView 
+              tasks={tasks}
+              onUpdateTask={handleUpdateTask}
+              onAddTask={handleAddTask}
+              onDeleteTask={handleDeleteTask}
             />
         ) : (
            <TaskTable 

@@ -198,7 +198,7 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
       ];
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-3.1-flash-live-preview',
+        model: 'models/gemini-2.0-flash',
         config: {
           systemInstruction: "You are Zora, a helpful and efficient personal task manager assistant. You have full access to the user's task app. Always be concise. Confirm actions verbally. \n\nWhen adding tasks, infer a reasonable frequency if the user doesn't specify one: \n- Use 'Daily' for habits (e.g., bath, meditation, reading).\n- Use 'Weekly' for recurring chores (e.g., laundry, cleaning).\n- Use 'Once' for specific one-time events.\n- Default to 'Once' if unsure.",
           tools: [{ functionDeclarations: tools }],

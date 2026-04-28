@@ -97,13 +97,17 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
           onChange={e => onUpdate({ ...task, title: e.target.value })}
           placeholder="Project Title"
           onKeyDown={e => e.key === 'Enter' && setIsEditing(false)}
+          onClick={e => e.stopPropagation()}
         />
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
           {Object.values(Priority).map((p) => (
             <button
               key={p}
               type="button"
-              onClick={() => onUpdate({ ...task, priority: p })}
+              onClick={(e) => {
+                e.stopPropagation();
+                onUpdate({ ...task, priority: p });
+              }}
               className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-tighter transition-all ${
                 task.priority === p
                   ? p === Priority.HIGH ? 'bg-red-500 text-white' :
@@ -121,16 +125,23 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
           value={task.notes || ''}
           onChange={e => onUpdate({ ...task, notes: e.target.value })}
           placeholder="Project description and notes..."
+          onClick={e => e.stopPropagation()}
         />
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center" onClick={e => e.stopPropagation()}>
           <button 
-            onClick={onDelete} 
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete();
+            }} 
             className="text-red-500/70 hover:text-red-500 text-xs font-bold uppercase tracking-wider hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all"
           >
             Delete
           </button>
           <button 
-            onClick={() => setIsEditing(false)} 
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditing(false);
+            }} 
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20"
           >
             Save

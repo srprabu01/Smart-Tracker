@@ -153,13 +153,21 @@ const StatusCell = ({ task, onChange }: { task: Task, onChange: (s: Status) => v
   );
 };
 
+const PriorityBadge = ({ priority }: { priority: string }) => {
+  return (
+    <span className={`${TAG_STYLES[priority]} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter`}>
+      {priority}
+    </span>
+  );
+};
+
 const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTasks, sortConfig, onSortChange, onDeleteTask, onAddTask }) => {
   const [quickAddTitle, setQuickAddTitle] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   const sortedTasks = useMemo(() => {
-    const baseSort = [...tasks].sort((a, b) => {
-      // 1. Always push DONE to the bottom unless explicitly sorting by status
+    return [...tasks].sort((a, b) => {
+      // 1. Primary Invariant: Push DONE to bottom unless status is explicitly sorted
       const isExplicitStatusSort = sortConfig.some(s => s.key === 'status');
       if (!isExplicitStatusSort) {
         const doneA = a.status === Status.DONE ? 1 : 0;
@@ -167,25 +175,30 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
         if (doneA !== doneB) return doneA - doneB;
       }
 
-      // 2. Apply user sorts
-      if (sortConfig.length > 0) {
-        for (const sort of sortConfig) {
-          const { key, direction } = sort;
-          const valA = a[key]; const valB = b[key];
-          if (valA === valB) continue;
-          let comp = 0;
-          if (key === 'priority') comp = PRIORITY_WEIGHT[valA as Priority] - PRIORITY_WEIGHT[valB as Priority];
-          else if (key === 'status') comp = STATUS_WEIGHT[valA as Status] - STATUS_WEIGHT[valB as Status];
-          else if (typeof valA === 'number') comp = (valA as number) - (valB as number);
-          else comp = String(valA || '').localeCompare(String(valB || ''));
-          if (comp !== 0) return direction === 'asc' ? comp : -comp;
+      // 2. Apply Active Sorts
+      for (const sort of sortConfig) {
+        const { key, direction } = sort;
+        const valA = a[key];
+        const valB = b[key];
+        if (valA === valB) continue;
+
+        let comp = 0;
+        if (key === 'priority') {
+          comp = (PRIORITY_WEIGHT[valA as Priority] || 0) - (PRIORITY_WEIGHT[valB as Priority] || 0);
+        } else if (key === 'status') {
+          comp = (STATUS_WEIGHT[valA as Status] || 0) - (STATUS_WEIGHT[valB as Status] || 0);
+        } else if (typeof valA === 'number') {
+          comp = (valA as number) - (valB as number);
+        } else {
+          comp = String(valA || '').localeCompare(String(valB || ''));
         }
+        
+        if (comp !== 0) return direction === 'asc' ? comp : -comp;
       }
 
-      // 3. Fallback to manual order
-      return (a.order ?? 0) - (b.order ?? 0);
+      // 3. Fallback: Stable manual order
+      return (a.order ?? 0) - (b.order ?? 0) || (a.id > b.id ? 1 : -1);
     });
-    return baseSort;
   }, [tasks, sortConfig]);
 
   const handleHeaderClick = (key: keyof Task) => {
@@ -249,39 +262,39 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
   };
 
   return (
-    <div className="overflow-x-auto pb-96 min-h-[600px]">
-      <table className="w-full text-left border-collapse min-w-[1000px]">
+    <div className="overflow-x-auto no-scrollbar pb-96 min-h-[600px] -mx-4 md:mx-0">
+      <table className="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
         <thead>
-          <tr className="border-b border-notion-border text-notion-muted">
-            <th className="py-2 px-2 w-[40px] font-bold uppercase text-[11px]"></th>
-            <th onClick={() => handleHeaderClick('title')} className="py-2 px-2 w-[220px] font-bold uppercase text-[11px] cursor-pointer hover:bg-notion-hover transition-colors group">
+          <tr className="border-b border-notion-border text-notion-muted bg-notion-bg sticky top-0 z-20">
+            <th className="py-2 px-2 w-[40px] font-bold uppercase text-[10px]"></th>
+            <th onClick={() => handleHeaderClick('title')} className="py-2 px-2 w-[200px] md:w-[220px] font-bold uppercase text-[10px] cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Aa Task <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('status')} className="py-2 px-4 w-[140px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('status')} className="py-2 px-4 w-[120px] md:w-[140px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Status <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('frequency')} className="py-2 px-4 w-[150px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('frequency')} className="py-2 px-4 w-[130px] md:w-[150px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Frequency <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('priority')} className="py-2 px-4 w-[120px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('priority')} className="py-2 px-4 w-[110px] md:w-[120px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Priority <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('nextDue')} className="py-2 px-4 w-[160px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('nextDue')} className="py-2 px-4 w-[140px] md:w-[160px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Next Due <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('lastCompleted')} className="py-2 px-4 w-[160px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('lastCompleted')} className="py-2 px-4 w-[140px] md:w-[160px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Last Completed <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('streak')} className="py-2 px-4 w-[80px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+            <th onClick={() => handleHeaderClick('streak')} className="py-2 px-4 w-[80px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
               <div className="flex items-center gap-2">Streak <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('showInCalendar')} className="py-2 px-4 w-[100px] font-bold uppercase text-[11px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">In Calendar <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('showInCalendar')} className="py-2 px-4 w-[90px] md:w-[100px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
+              <div className="flex items-center gap-2">Calendar <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
             </th>
             <th className="py-2 px-4 w-[50px] border-l border-notion-border text-center"><IconTrash className="w-3.5 h-3.5 mx-auto opacity-40" /></th>
           </tr>
         </thead>
-        <tbody className="text-sm">
+        <tbody className="text-[13px]">
           {sortedTasks.map((task, index) => (
             <tr 
               key={task.id} 

@@ -9,13 +9,14 @@ interface SortPopupProps {
 }
 
 const COLUMN_LABELS: Record<string, string> = {
-  title: 'Task',
+  title: 'Task Name',
   status: 'Status',
   frequency: 'Frequency',
   priority: 'Priority',
   nextDue: 'Next Due',
   lastCompleted: 'Last Completed',
-  streak: 'Streak'
+  streak: 'Streak',
+  showInCalendar: 'In Calendar'
 };
 
 const COLUMN_ICONS: Record<string, React.ReactNode> = {
@@ -25,11 +26,12 @@ const COLUMN_ICONS: Record<string, React.ReactNode> = {
   priority: <IconSort className="w-3 h-3" />,
   nextDue: <IconCalendar className="w-3 h-3" />,
   lastCompleted: <IconCalendar className="w-3 h-3" />,
-  streak: <div className="text-[10px]">🔥</div>
+  streak: <div className="text-[9px]">🔥</div>,
+  showInCalendar: <IconCalendar className="w-3 h-3 text-blue-400" />
 };
 
 const AVAILABLE_COLUMNS: (keyof Task)[] = [
-  'nextDue', 'priority', 'status', 'frequency', 'title', 'streak', 'lastCompleted'
+  'nextDue', 'priority', 'status', 'frequency', 'title', 'streak', 'lastCompleted', 'showInCalendar'
 ];
 
 const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
@@ -89,7 +91,7 @@ const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
   return (
     <div 
       ref={containerRef}
-      className="absolute top-full left-0 mt-2 w-[400px] bg-[#202020] border border-[#373737] rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden"
+      className="absolute top-full left-0 mt-2 w-[calc(100vw-2rem)] md:w-[400px] bg-[#202020] border border-[#373737] rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden transition-all duration-200 origin-top"
     >
       <div className="p-2 space-y-1 max-h-[400px] overflow-y-auto">
         <div className="text-xs text-gray-500 px-2 py-1 font-medium">Sorts</div>
@@ -122,11 +124,11 @@ const SortPopup: React.FC<SortPopupProps> = ({ sorts, onChange, onClose }) => {
                  onChange={(e) => handleUpdate(sort.id, { key: e.target.value as keyof Task })}
                >
                  {AVAILABLE_COLUMNS.map(col => (
-                    <option key={col} value={col}>{COLUMN_LABELS[col]}</option>
+                    <option key={col} value={col}>{COLUMN_LABELS[col] || col}</option>
                  ))}
                </select>
                <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                  {COLUMN_ICONS[sort.key]}
+                  {COLUMN_ICONS[sort.key] || <IconSort className="w-3 h-3" />}
                </div>
                <div className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                   <IconChevronDown className="w-3 h-3" />

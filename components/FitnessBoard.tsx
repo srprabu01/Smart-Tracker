@@ -175,6 +175,33 @@ const WorkoutModal = ({
     );
 };
 
+const FitnessCard = ({ task, onEditTask, onToggleStatus, onPlayVideo, onDeleteTask }: { task: Task, onEditTask: (t: Task) => void, onToggleStatus: (t: Task) => void, onPlayVideo: (url: string, title: string) => void, onDeleteTask: (id: string) => void }) => {
+   const embedId = getYoutubeEmbedId(task.videoUrl);
+   const isDone = task.status === Status.DONE;
+   return (
+    <div 
+        draggable
+        onDragStart={(e) => { e.dataTransfer.setData('text/plain', task.id); }}
+        className={`group relative rounded-md p-3 shadow-sm border border-transparent hover:border-gray-600 transition-all flex items-start gap-3 ${isDone ? 'bg-[#1c2e24] opacity-75' : 'bg-[#202020] hover:bg-[#2c2c2c]'}`}
+    >
+        <button onClick={() => onToggleStatus(task)} className={`mt-1 flex-shrink-0 transition-all ${isDone ? 'text-green-500' : 'text-gray-500 hover:text-gray-300'}`}>
+           {isDone ? <IconCheckCircle className="w-5 h-5" /> : <IconCircle className="w-5 h-5" />}
+        </button>
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEditTask(task)}>
+            <div className={`text-sm font-medium break-words leading-tight mb-1.5 ${isDone ? 'text-gray-400 line-through' : 'text-notion-text'}`}>{task.title}</div>
+            <div className="flex items-center gap-2">
+                {task.reps && <div className="bg-[#333] text-gray-300 text-[10px] px-1.5 py-0.5 rounded font-mono border border-[#444]">{task.reps}</div>}
+                {task.isHomeWorkout && <div className="text-green-400 bg-green-900/30 px-1 rounded border border-green-900/50"><IconHome className="w-3 h-3" /></div>}
+            </div>
+        </div>
+        <div className="flex items-center gap-1 self-center">
+            <button onClick={(e) => { e.stopPropagation(); if (embedId) onPlayVideo(task.videoUrl!, task.title); else window.open(task.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(task.title)}`, '_blank'); }} className="p-1.5 rounded text-blue-400 hover:bg-blue-900/30">{embedId ? <IconPlay className="w-4 h-4" /> : <IconExternalLink className="w-4 h-4" />}</button>
+            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteTask(task.id); }} className="text-gray-600 hover:text-red-400 p-1.5 opacity-0 group-hover:opacity-100"><IconTrash className="w-4 h-4" /></button>
+        </div>
+    </div>
+   );
+};
+
 const FitnessColumn: React.FC<FitnessColumnProps> = ({ 
   title, category, tasks, onAddTask, onDropTask, onDeleteTask, onEditTask, onPlayVideo, onToggleStatus
 }) => {
@@ -199,32 +226,16 @@ const FitnessColumn: React.FC<FitnessColumnProps> = ({
         </div>
       </div>
       <div className="flex flex-col gap-2 pb-4 h-full min-h-[200px]">
-        {tasks.map(task => {
-           const embedId = getYoutubeEmbedId(task.videoUrl);
-           const isDone = task.status === Status.DONE;
-           return (
-            <div 
-                key={task.id} draggable
-                onDragStart={(e) => { e.dataTransfer.setData('text/plain', task.id); }}
-                className={`group relative rounded-md p-3 shadow-sm border border-transparent hover:border-gray-600 transition-all flex items-start gap-3 ${isDone ? 'bg-[#1c2e24] opacity-75' : 'bg-[#202020] hover:bg-[#2c2c2c]'}`}
-            >
-                <button onClick={() => onToggleStatus(task)} className={`mt-1 flex-shrink-0 transition-all ${isDone ? 'text-green-500' : 'text-gray-500 hover:text-gray-300'}`}>
-                   {isDone ? <IconCheckCircle className="w-5 h-5" /> : <IconCircle className="w-5 h-5" />}
-                </button>
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onEditTask(task)}>
-                    <div className={`text-sm font-medium break-words leading-tight mb-1.5 ${isDone ? 'text-gray-400 line-through' : 'text-notion-text'}`}>{task.title}</div>
-                    <div className="flex items-center gap-2">
-                        {task.reps && <div className="bg-[#333] text-gray-300 text-[10px] px-1.5 py-0.5 rounded font-mono border border-[#444]">{task.reps}</div>}
-                        {task.isHomeWorkout && <div className="text-green-400 bg-green-900/30 px-1 rounded border border-green-900/50"><IconHome className="w-3 h-3" /></div>}
-                    </div>
-                </div>
-                <div className="flex items-center gap-1 self-center">
-                    <button onClick={(e) => { e.stopPropagation(); if (embedId) onPlayVideo(task.videoUrl!, task.title); else window.open(task.videoUrl || `https://www.youtube.com/results?search_query=${encodeURIComponent(task.title)}`, '_blank'); }} className="p-1.5 rounded text-blue-400 hover:bg-blue-900/30">{embedId ? <IconPlay className="w-4 h-4" /> : <IconExternalLink className="w-4 h-4" />}</button>
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDeleteTask(task.id); }} className="text-gray-600 hover:text-red-400 p-1.5 opacity-0 group-hover:opacity-100"><IconTrash className="w-4 h-4" /></button>
-                </div>
-            </div>
-           );
-        })}
+        {tasks.map(task => (
+            <FitnessCard 
+                key={task.id} 
+                task={task} 
+                onEditTask={onEditTask} 
+                onToggleStatus={onToggleStatus} 
+                onPlayVideo={onPlayVideo} 
+                onDeleteTask={onDeleteTask} 
+            />
+        ))}
         <button onClick={onAddTask} className="flex items-center gap-2 text-gray-500 hover:bg-[#2c2c2c] p-2 rounded text-sm mt-1 opacity-50 hover:opacity-100"><IconPlus className="w-4 h-4" />Add workout</button>
       </div>
     </div>
@@ -283,6 +294,73 @@ const FitnessBoard: React.FC<FitnessBoardProps> = ({ tasks, onUpdateTask, onAddT
                 />
             ))}
         </div>
+
+        {/* 3-Day Workout Split Bar */}
+        <div className="mt-auto pb-12">
+            <div className="bg-[#1e1e1e] border border-[#333] rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-32 bg-purple-500/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+                <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2 relative z-10">
+                    <IconDumbbell className="w-5 h-5 text-purple-400" />
+                    3-Day Workout Split
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                    {/* Day 1 */}
+                    <div className="bg-[#252525] border border-[#3a3a3a] rounded-xl p-5 hover:border-purple-500/50 transition-colors group flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-purple-400 transition-colors">Day 1</span>
+                            <div className="w-2 h-2 rounded-full bg-purple-500/30 group-hover:bg-purple-500 transition-colors"></div>
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-200">Glutes & Hamstrings</h4>
+                        <p className="text-sm text-gray-500 mt-2">Posterior chain focus for glute development and hamstring strength.</p>
+                        <div className="mt-4 flex flex-col gap-2 flex-grow">
+                            {tasks.filter(t => t.category === 'Day 1').map(task => (
+                                <FitnessCard key={task.id} task={task} onEditTask={setEditingTask} onToggleStatus={handleToggleStatus} onPlayVideo={(url, title) => setPlayingVideo({ url, title })} onDeleteTask={onDeleteTask} />
+                            ))}
+                        </div>
+                        <button onClick={() => onAddTask('Day 1')} className="mt-4 w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-auto">
+                            <IconPlus className="w-4 h-4" /> Add Exercise
+                        </button>
+                    </div>
+                    
+                    {/* Day 2 */}
+                    <div className="bg-[#252525] border border-[#3a3a3a] rounded-xl p-5 hover:border-cyan-500/50 transition-colors group flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-cyan-400 transition-colors">Day 2</span>
+                            <div className="w-2 h-2 rounded-full bg-cyan-500/30 group-hover:bg-cyan-500 transition-colors"></div>
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-200">Upper Body & Core</h4>
+                        <p className="text-sm text-gray-500 mt-2">Comprehensive upper body strength paired with core stability.</p>
+                        <div className="mt-4 flex flex-col gap-2 flex-grow">
+                            {tasks.filter(t => t.category === 'Day 2').map(task => (
+                                <FitnessCard key={task.id} task={task} onEditTask={setEditingTask} onToggleStatus={handleToggleStatus} onPlayVideo={(url, title) => setPlayingVideo({ url, title })} onDeleteTask={onDeleteTask} />
+                            ))}
+                        </div>
+                        <button onClick={() => onAddTask('Day 2')} className="mt-4 w-full py-2 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-auto">
+                            <IconPlus className="w-4 h-4" /> Add Exercise
+                        </button>
+                    </div>
+
+                    {/* Day 3 */}
+                    <div className="bg-[#252525] border border-[#3a3a3a] rounded-xl p-5 hover:border-emerald-500/50 transition-colors group flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-emerald-400 transition-colors">Day 3</span>
+                            <div className="w-2 h-2 rounded-full bg-emerald-500/30 group-hover:bg-emerald-500 transition-colors"></div>
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-200">Glutes & Quads</h4>
+                        <p className="text-sm text-gray-500 mt-2">Anterior focus for quad sweep and overall leg volume.</p>
+                        <div className="mt-4 flex flex-col gap-2 flex-grow">
+                            {tasks.filter(t => t.category === 'Day 3').map(task => (
+                                <FitnessCard key={task.id} task={task} onEditTask={setEditingTask} onToggleStatus={handleToggleStatus} onPlayVideo={(url, title) => setPlayingVideo({ url, title })} onDeleteTask={onDeleteTask} />
+                            ))}
+                        </div>
+                        <button onClick={() => onAddTask('Day 3')} className="mt-4 w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2 mt-auto">
+                            <IconPlus className="w-4 h-4" /> Add Exercise
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {editingTask && <WorkoutModal task={editingTask} onClose={() => setEditingTask(null)} onSave={onUpdateTask} />}
         {playingVideo && <VideoPlayerModal url={playingVideo.url} title={playingVideo.title} onClose={() => setPlayingVideo(null)} />}
     </div>

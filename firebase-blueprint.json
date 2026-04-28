@@ -28,7 +28,9 @@
         "location": { "type": "string" },
         "link": { "type": "string" },
         "notes": { "type": "string" },
-        "jobCount": { "type": "number" }
+        "jobCount": { "type": "number" },
+        "scheduledTime": { "type": "string" },
+        "scheduledDuration": { "type": "number" }
       },
       "required": ["uid", "title", "status", "frequency", "priority", "nextDue", "streak"]
     }

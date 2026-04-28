@@ -5,6 +5,9 @@ let aiInstance: GoogleGenAI | null = null;
 const getAI = () => {
   if (!aiInstance) {
     const key = process.env.GEMINI_API_KEY || process.env.API_KEY || '';
+    if (!key) {
+      console.warn("GEMINI_API_KEY is not defined in the environment.");
+    }
     aiInstance = new GoogleGenAI({ apiKey: key });
   }
   return aiInstance;
@@ -56,29 +59,33 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
   const ai = getAI();
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: `Current Date: ${today}. User input: "${input}". 
-      Extract task details. If specific info is missing, infer reasonable defaults based on context. 
-      Default Status: To Do. 
-      Default Priority: Medium.
-      
-      Frequency Inference:
-      - Infer "Daily" for recurring personal habits (e.g., "bath", "brush teeth", "meditate", "exercise").
-      - Infer "Weekly" for chores (e.g., "laundry", "clean room", "grocery shopping").
-      - Default to "Once" only if it sounds like a specific one-time event or if unsure.
-      - "Every weekday" or "weekdays" -> Frequency: Weekdays.
-      - "Every 2 weeks" or "biweekly" -> Frequency: Biweekly.
-      
-      Next Due should be YYYY-MM-DD format based on "today", "tomorrow", "next friday", etc.
-      For fitness tasks:
-      - Look for "reps", "sets", "minutes" for the 'reps' field (e.g. "3 sets of 10", "30 mins").
-      - Infer 'isHomeWorkout' if the context implies home equipment or bodyweight (e.g. "pushups", "yoga", "home workout").
-      For job search tasks:
-      - Extract 'company', 'role', 'salary', 'location', 'link' if mentioned.
-      - Infer 'isJobSearch' if it mentions applying, interviewing, or a company name.
-      For project tasks:
-      - Infer 'isProject' if it mentions a project, idea, building something, or a side hustle.`,
+    const result = await ai.models.generateContent({
+      model: "models/gemini-2.0-flash",
+      contents: [{
+        parts: [{
+          text: `Current Date: ${today}. User input: "${input}". 
+          Extract task details. If specific info is missing, infer reasonable defaults based on context. 
+          Default Status: To Do. 
+          Default Priority: Medium.
+          
+          Frequency Inference:
+          - Infer "Daily" for recurring personal habits (e.g., "bath", "brush teeth", "meditate", "exercise").
+          - Infer "Weekly" for chores (e.g., "laundry", "clean room", "grocery shopping").
+          - Default to "Once" only if it sounds like a specific one-time event or if unsure.
+          - "Every weekday" or "weekdays" -> Frequency: Weekdays.
+          - "Every 2 weeks" or "biweekly" -> Frequency: Biweekly.
+          
+          Next Due should be YYYY-MM-DD format based on "today", "tomorrow", "next friday", etc.
+          For fitness tasks:
+          - Look for "reps", "sets", "minutes" for the 'reps' field (e.g. "3 sets of 10", "30 mins").
+          - Infer 'isHomeWorkout' if the context implies home equipment or bodyweight (e.g. "pushups", "yoga", "home workout").
+          For job search tasks:
+          - Extract 'company', 'role', 'salary', 'location', 'link' if mentioned.
+          - Infer 'isJobSearch' if it mentions applying, interviewing, or a company name.
+          For project tasks:
+          - Infer 'isProject' if it mentions a project, idea, building something, or a side hustle.`
+        }]
+      }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -105,10 +112,11 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
       }
     });
 
-    if (response.text) {
-      const parsed = extractJson(response.text);
+    const responseText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (responseText) {
+      const parsed = extractJson(responseText);
       if (parsed) return parsed as ParsedTaskData;
-      console.error("Failed to parse JSON from Gemini response:", response.text);
+      console.error("Failed to parse JSON from Gemini response:", responseText);
     }
     console.error("Empty response from Gemini");
     return null;
@@ -126,16 +134,16 @@ export const parseTaskFromInput = async (input: string): Promise<ParsedTaskData 
 export const transcribeAudio = async (base64Audio: string, mimeType: string): Promise<string | null> => {
   const ai = getAI();
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
+    const result = await ai.models.generateContent({
+      model: "models/gemini-2.0-flash",
+      contents: [{
         parts: [
           { inlineData: { mimeType, data: base64Audio } },
           { text: "Transcribe the following audio to text. Return only the transcription." }
         ]
-      }
+      }]
     });
-    return response.text || null;
+    return result.candidates?.[0]?.content?.parts?.[0]?.text || null;
   } catch (error) {
     console.error("Transcription error:", error);
     return null;
