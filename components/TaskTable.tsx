@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Task, Status, Priority, Frequency, SortOption, FitnessCategory } from '../types';
 import { IconFileText, IconTrash, IconPlus, IconSort, IconGripVertical } from './Icons';
 
@@ -63,27 +64,27 @@ const PRIORITY_WEIGHT = { [Priority.HIGH]: 3, [Priority.MEDIUM]: 2, [Priority.LO
 const STATUS_WEIGHT = { [Status.TODO]: 1, [Status.IN_PROGRESS]: 2, [Status.DONE]: 3 };
 
 export const TAG_STYLES: Record<string, string> = {
-  [Frequency.DAILY]: 'bg-[#1c3829] text-[#6dd39b]',
-  [Frequency.WEEKDAYS]: 'bg-[#281e36] text-[#b395d6]',
-  [Frequency.WEEKLY]: 'bg-[#2e231e] text-[#d6bba7]',
-  [Frequency.BIWEEKLY]: 'bg-[#2a2a2a] text-[#9b9b9b]',
-  [Frequency.MONTHLY]: 'bg-[#38281e] text-[#dcb696]',
-  [Frequency.ONCE]: 'bg-[#1d282e] text-[#71aadc]',
+  [Frequency.DAILY]: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+  [Frequency.WEEKDAYS]: 'bg-indigo-50 text-indigo-700 border border-indigo-100',
+  [Frequency.WEEKLY]: 'bg-orange-50 text-orange-700 border border-orange-100',
+  [Frequency.BIWEEKLY]: 'bg-slate-50 text-slate-600 border border-slate-200',
+  [Frequency.MONTHLY]: 'bg-rose-50 text-rose-700 border border-rose-100',
+  [Frequency.ONCE]: 'bg-blue-50 text-blue-700 border border-blue-100',
   
-  [Priority.HIGH]: 'bg-[#3e2c2c] text-[#ff7d7d]',
-  [Priority.MEDIUM]: 'bg-[#3c3623] text-[#e0c675]',
-  [Priority.LOW]: 'bg-[#2a2a2a] text-[#9b9b9b]',
+  [Priority.HIGH]: 'bg-rose-50 text-rose-600 border border-rose-100',
+  [Priority.MEDIUM]: 'bg-amber-50 text-amber-600 border border-amber-100',
+  [Priority.LOW]: 'bg-slate-50 text-slate-500 border border-slate-200',
   
-  [Status.TODO]: 'bg-[#373737] text-gray-300',
-  [Status.IN_PROGRESS]: 'bg-[#1d3d66] text-[#6cbbf7]',
-  [Status.DONE]: 'bg-[#1c3829] text-[#6dd39b]',
+  [Status.TODO]: 'bg-slate-50 text-slate-500 border border-slate-200',
+  [Status.IN_PROGRESS]: 'bg-blue-50 text-blue-700 border border-blue-100',
+  [Status.DONE]: 'bg-emerald-50 text-emerald-700 border border-emerald-100',
 
-  [FitnessCategory.ABS]: 'bg-[#4c1d1d] text-[#ffada4]',
-  [FitnessCategory.GLUTES]: 'bg-[#2e1d36] text-[#d695d0]',
-  [FitnessCategory.SNOWBOARD]: 'bg-[#1d2b3a] text-[#90cdf4]',
-  [FitnessCategory.DAILY]: 'bg-[#1c3829] text-[#6dd39b]',
-  [FitnessCategory.OTHERS]: 'bg-[#2a2a2a] text-[#9b9b9b]',
-  'None': 'text-notion-muted bg-transparent border border-notion-border',
+  [FitnessCategory.ABS]: 'bg-rose-50 text-rose-600',
+  [FitnessCategory.GLUTES]: 'bg-purple-50 text-purple-600',
+  [FitnessCategory.SNOWBOARD]: 'bg-cyan-50 text-cyan-600',
+  [FitnessCategory.DAILY]: 'bg-emerald-50 text-emerald-600',
+  [FitnessCategory.OTHERS]: 'bg-slate-50 text-slate-500',
+  'None': 'text-app-muted bg-transparent border border-app-border',
 };
 
 interface TaskTableProps {
@@ -100,17 +101,17 @@ const SelectDropdown = ({ value, options, onChange, onClose }: { value: string; 
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => { inputRef.current?.focus(); }, []);
   return (
-    <div className="absolute top-full left-0 mt-1 w-64 bg-[#202020] border border-[#373737] rounded-lg shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-150 backdrop-blur-xl">
-       <div className="p-3 border-b border-[#373737] flex gap-2 items-center bg-[#252525]/80">
-          <span className={`text-[10px] px-2 py-0.5 rounded-sm font-bold uppercase tracking-tight ${TAG_STYLES[value] || 'bg-gray-700 text-gray-300'}`}>{value}</span>
-          <input ref={inputRef} type="text" placeholder="Search options..." className="bg-transparent border-none outline-none text-sm text-gray-300 w-full placeholder-gray-600" />
-          <button className="text-gray-500 text-lg leading-none hover:text-white transition-colors" onClick={onClose}>&times;</button>
+    <div className="absolute top-full left-0 mt-2 w-64 bg-white border border-app-border rounded-2xl shadow-2xl z-[100] overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+       <div className="p-4 border-b border-app-border flex gap-3 items-center bg-app-surface/50">
+          <span className={`text-[10px] px-2 py-1 rounded-lg font-black uppercase tracking-widest ${TAG_STYLES[value] || 'bg-slate-100 text-slate-500'}`}>{value}</span>
+          <input ref={inputRef} type="text" placeholder="Filter..." className="bg-transparent border-none outline-none text-sm text-app-ink w-full placeholder-app-muted font-bold" />
+          <button className="text-app-muted text-xl leading-none hover:text-app-ink transition-colors" onClick={onClose}>&times;</button>
        </div>
-       <div className="flex-1 overflow-y-auto max-h-60 p-1 bg-[#202020]">
+       <div className="flex-1 overflow-y-auto max-h-64 p-1.5">
           {options.map((opt) => (
-             <button key={opt} onClick={() => { onChange(opt); onClose(); }} className={`w-full flex items-center gap-2 px-2 py-2 rounded transition-all text-left group ${value === opt ? 'bg-[#2c2c2c]' : 'hover:bg-[#2c2c2c]/60'}`}>
-                <div className="w-6 flex justify-center text-gray-700 transition-colors"><div className="text-xs">⋮⋮</div></div>
-                <span className={`text-xs px-2 py-0.5 rounded-sm font-medium ${TAG_STYLES[opt] || 'bg-[#2a2a2a] text-gray-400'}`}>{opt}</span>
+             <button key={opt} onClick={() => { onChange(opt); onClose(); }} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left group ${value === opt ? 'bg-app-purple-50' : 'hover:bg-app-hover'}`}>
+                <div className="w-5 flex justify-center text-app-muted group-hover:text-app-purple-400 transition-colors"><div className="text-[10px] font-black tracking-tighter">::</div></div>
+                <span className={`text-[11px] px-2.5 py-1 rounded-lg font-black uppercase tracking-tight ${TAG_STYLES[opt] || 'bg-slate-100 text-slate-400'}`}>{opt}</span>
              </button>
           ))}
        </div>
@@ -128,7 +129,7 @@ const TagCell = ({ value, options, onChange, editable = true }: { value: string;
   }, [isOpen]);
   return (
     <div className="relative" ref={containerRef}>
-      <button onClick={() => editable && setIsOpen(!isOpen)} className={`${TAG_STYLES[value] || 'bg-[#2a2a2a] text-gray-400'} px-2 py-0.5 rounded-sm text-xs font-medium whitespace-nowrap hover:opacity-80 transition-all`}>{value}</button>
+      <button onClick={() => editable && setIsOpen(!isOpen)} className={`${TAG_STYLES[value] || 'bg-slate-100 text-slate-400'} px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter whitespace-nowrap hover:ring-2 hover:ring-app-purple-200 transition-all`}>{value}</button>
       {isOpen && <SelectDropdown value={value} options={options} onChange={onChange} onClose={() => setIsOpen(false)} />}
     </div>
   );
@@ -144,8 +145,8 @@ const StatusCell = ({ task, onChange }: { task: Task, onChange: (s: Status) => v
   }, [isOpen]);
   return (
     <div className="relative" ref={containerRef}>
-      <button onClick={() => setIsOpen(!isOpen)} className={`${TAG_STYLES[task.status]} px-2 py-0.5 rounded-sm text-xs font-medium inline-flex items-center gap-1.5 whitespace-nowrap`}>
-        <div className={`w-1.5 h-1.5 rounded-full ${task.status === Status.TODO ? 'bg-gray-400' : task.status === Status.IN_PROGRESS ? 'bg-[#3d9af5]' : 'bg-[#4ea879]'}`}></div>
+      <button onClick={() => setIsOpen(!isOpen)} className={`${TAG_STYLES[task.status]} px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter inline-flex items-center gap-2 whitespace-nowrap hover:ring-2 hover:ring-app-purple-200 transition-all`}>
+        <div className={`w-1.5 h-1.5 rounded-full ${task.status === Status.TODO ? 'bg-slate-400' : task.status === Status.IN_PROGRESS ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
         {task.status}
       </button>
       {isOpen && <SelectDropdown value={task.status} options={Object.values(Status)} onChange={(v) => onChange(v as Status)} onClose={() => setIsOpen(false)} />}
@@ -155,7 +156,7 @@ const StatusCell = ({ task, onChange }: { task: Task, onChange: (s: Status) => v
 
 const PriorityBadge = ({ priority }: { priority: string }) => {
   return (
-    <span className={`${TAG_STYLES[priority]} px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-tighter`}>
+    <span className={`${TAG_STYLES[priority]} px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter`}>
       {priority}
     </span>
   );
@@ -262,99 +263,120 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
   };
 
   return (
-    <div className="overflow-x-auto no-scrollbar pb-96 min-h-[600px] -mx-4 md:mx-0">
+    <div className="overflow-x-auto scrollbar-hide pb-96 min-h-[600px] -mx-4 md:mx-0">
       <table className="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
         <thead>
-          <tr className="border-b border-notion-border text-notion-muted bg-notion-bg sticky top-0 z-20">
-            <th className="py-2 px-2 w-[40px] font-bold uppercase text-[10px]"></th>
-            <th onClick={() => handleHeaderClick('title')} className="py-2 px-2 w-[200px] md:w-[220px] font-bold uppercase text-[10px] cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Aa Task <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+          <tr className="border-b border-app-border text-app-muted bg-white sticky top-0 z-20">
+            <th className="py-4 px-3 w-[50px] font-black uppercase text-[10px] tracking-[0.2em]"></th>
+            <th onClick={() => handleHeaderClick('title')} className="py-4 px-3 w-[220px] md:w-[260px] font-black uppercase text-[10px] tracking-[0.2em] cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Aa Name <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('status')} className="py-2 px-4 w-[120px] md:w-[140px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Status <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('status')} className="py-4 px-4 w-[130px] md:w-[150px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Status <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('frequency')} className="py-2 px-4 w-[130px] md:w-[150px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Frequency <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('frequency')} className="py-4 px-4 w-[140px] md:w-[160px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Frequency <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('priority')} className="py-2 px-4 w-[110px] md:w-[120px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Priority <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('priority')} className="py-4 px-4 w-[120px] md:w-[130px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Priority <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('nextDue')} className="py-2 px-4 w-[140px] md:w-[160px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Next Due <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('nextDue')} className="py-4 px-4 w-[150px] md:w-[170px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Due <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('lastCompleted')} className="py-2 px-4 w-[140px] md:w-[160px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Last Completed <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('lastCompleted')} className="py-4 px-4 w-[150px] md:w-[170px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Done <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('streak')} className="py-2 px-4 w-[80px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Streak <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('streak')} className="py-4 px-4 w-[90px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Streak <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th onClick={() => handleHeaderClick('showInCalendar')} className="py-2 px-4 w-[90px] md:w-[100px] font-bold uppercase text-[10px] border-l border-notion-border cursor-pointer hover:bg-notion-hover transition-colors group">
-              <div className="flex items-center gap-2">Calendar <IconSort className="w-3 h-3 opacity-0 group-hover:opacity-100" /></div>
+            <th onClick={() => handleHeaderClick('showInCalendar')} className="py-4 px-4 w-[100px] md:w-[110px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+              <div className="flex items-center gap-2">Sync <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
-            <th className="py-2 px-4 w-[50px] border-l border-notion-border text-center"><IconTrash className="w-3.5 h-3.5 mx-auto opacity-40" /></th>
+            <th className="py-4 px-4 w-[60px] border-l border-app-border text-center"><IconTrash className="w-4 h-4 mx-auto text-app-muted opacity-40" /></th>
           </tr>
         </thead>
-        <tbody className="text-[13px]">
+        <tbody className="text-[13px] font-bold">
           {sortedTasks.map((task, index) => (
             <tr 
               key={task.id} 
               onDragOver={(e) => onDragOver(e, index)}
               onDrop={(e) => onDrop(e, index)}
-              className={`group hover:bg-notion-hover border-b border-notion-border/50 ${draggedIndex === index ? 'opacity-30' : ''}`}
+              className={`group hover:bg-app-hover border-b border-app-border/40 transition-colors ${draggedIndex === index ? 'bg-app-purple-50 opacity-40' : ''}`}
             >
-              <td className="py-2 px-2">
+              <td className="py-3.5 px-3">
                 <div 
                   draggable
                   onDragStart={(e) => onDragStart(e, index)}
-                  className="cursor-grab active:cursor-grabbing p-1"
+                  className="cursor-grab active:cursor-grabbing p-1.5 hover:bg-white rounded-lg shadow-sm group-hover:opacity-100 opacity-0 transition-all"
                 >
-                  <IconGripVertical className="w-4 h-4 text-gray-700 group-hover:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <IconGripVertical className="w-4 h-4 text-app-purple-300 group-hover:text-app-purple-500 transition-colors" />
                 </div>
               </td>
-              <td className="py-2 px-2 flex items-center gap-2"><IconFileText className="w-4 h-4 text-notion-muted" /> {task.title}</td>
-              <td className="py-2 px-4 border-l border-notion-border/50"><StatusCell task={task} onChange={(s) => handleStatusChange(task, s)} /></td>
-              <td className="py-2 px-4 border-l border-notion-border/50"><TagCell value={task.frequency} options={Object.values(Frequency)} onChange={(v) => onUpdateTask({ ...task, frequency: v as Frequency })} /></td>
-              <td className="py-2 px-4 border-l border-notion-border/50"><TagCell value={task.priority} options={Object.values(Priority)} onChange={(v) => onUpdateTask({ ...task, priority: v as Priority })} /></td>
-              <td className="py-2 px-4 border-l border-notion-border/50">
+              <td className="py-3.5 px-3 flex items-center gap-3 text-app-ink">
+                <IconFileText className="w-4 h-4 text-app-muted group-hover:text-app-purple-500 transition-colors" /> 
+                <span className="truncate max-w-[180px] md:max-w-none">{task.title}</span>
+              </td>
+              <td className="py-3.5 px-4 border-l border-app-border/40"><StatusCell task={task} onChange={(s) => handleStatusChange(task, s)} /></td>
+              <td className="py-3.5 px-4 border-l border-app-border/40"><TagCell value={task.frequency} options={Object.values(Frequency)} onChange={(v) => onUpdateTask({ ...task, frequency: v as Frequency })} /></td>
+              <td className="py-3.5 px-4 border-l border-app-border/40"><TagCell value={task.priority} options={Object.values(Priority)} onChange={(v) => onUpdateTask({ ...task, priority: v as Priority })} /></td>
+              <td className="py-3.5 px-4 border-l border-app-border/40">
                 <input 
                   type="date" 
                   value={task.nextDue} 
                   onChange={(e) => onUpdateTask({ ...task, nextDue: e.target.value })} 
-                  className="bg-transparent text-gray-300 font-mono text-[13px] outline-none border border-transparent hover:border-[#373737] px-1 rounded transition-colors"
+                  className="bg-transparent text-app-ink font-mono text-[11px] font-black uppercase outline-none border border-transparent hover:border-app-purple-200 px-2 py-1 rounded-lg transition-all"
                 />
               </td>
-              <td className="py-2 px-4 border-l border-notion-border/50">
+              <td className="py-3.5 px-4 border-l border-app-border/40">
                 <input 
                   type="date" 
                   value={task.lastCompleted || ''} 
                   onChange={(e) => onUpdateTask({ ...task, lastCompleted: e.target.value || null })} 
-                  className="bg-transparent text-gray-500 font-mono text-[13px] outline-none border border-transparent hover:border-[#373737] px-1 rounded transition-colors"
+                  className="bg-transparent text-app-muted font-mono text-[11px] font-black uppercase outline-none border border-transparent hover:border-app-purple-200 px-2 py-1 rounded-lg transition-all"
                 />
               </td>
-              <td className="py-2 px-4 border-l border-notion-border/50">{task.streak > 0 ? <span className="text-orange-400 font-bold">🔥 {task.streak}</span> : '0'}</td>
-              <td className="py-2 px-4 border-l border-notion-border/50 text-center">
+              <td className="py-3.5 px-4 border-l border-app-border/40">
+                {task.streak > 0 ? (
+                  <div className="flex items-center gap-1.5 bg-amber-50 text-amber-600 px-2.5 py-1 rounded-xl text-[10px] font-black border border-amber-100">
+                    <span className="text-sm">🔥</span> {task.streak}
+                  </div>
+                ) : (
+                  <span className="text-app-muted/30 ml-2">0</span>
+                )}
+              </td>
+              <td className="py-3.5 px-4 border-l border-app-border/40 text-center">
                 <button 
                   onClick={() => onUpdateTask({ ...task, showInCalendar: !task.showInCalendar })}
-                  className={`w-8 h-4 rounded-full transition-colors relative ${task.showInCalendar ? 'bg-blue-600' : 'bg-[#373737]'}`}
+                  className={`w-10 h-5 rounded-full transition-all relative ${task.showInCalendar ? 'bg-app-purple-500' : 'bg-slate-200'}`}
                 >
-                  <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${task.showInCalendar ? 'left-4.5' : 'left-0.5'}`} />
+                  <motion.div 
+                    animate={{ x: task.showInCalendar ? 22 : 2 }}
+                    className="absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm" 
+                  />
                 </button>
               </td>
-              <td className="py-2 px-4 border-l border-notion-border/50 text-center"><button onClick={() => onDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400"><IconTrash className="w-4 h-4" /></button></td>
+              <td className="py-3.5 px-4 border-l border-app-border/40 text-center">
+                <button onClick={() => onDeleteTask(task.id)} className="opacity-0 group-hover:opacity-100 text-app-muted hover:text-rose-500 p-2 hover:bg-rose-50 rounded-xl transition-all">
+                  <IconTrash className="w-4 h-4" />
+                </button>
+              </td>
             </tr>
           ))}
-          <tr className="border-b border-notion-border/50 group">
+          <tr className="border-b border-app-border/40 group">
              <td colSpan={10} className="p-0">
-                <div className="flex items-center px-4 py-2 gap-2 text-notion-muted group-hover:text-notion-text transition-colors">
-                   <IconPlus className="w-4 h-4" />
+                <div className="flex items-center px-4 py-4 gap-4 text-app-muted hover:bg-app-surface transition-colors cursor-text">
+                   <IconPlus className="w-5 h-5 text-app-purple-400" />
                    <input 
                       type="text" 
-                      placeholder="New Task" 
+                      placeholder="Add new high-impact task..." 
                       value={quickAddTitle}
                       onChange={(e) => setQuickAddTitle(e.target.value)}
                       onKeyDown={handleQuickAddSubmit}
-                      className="bg-transparent border-none outline-none text-sm w-full placeholder-notion-muted focus:placeholder-gray-600"
+                      className="bg-transparent border-none outline-none text-sm font-bold w-full placeholder-app-muted focus:placeholder-slate-400 text-app-ink"
                    />
+                   <div className="hidden md:flex items-center gap-1 px-2 py-1 bg-slate-100 rounded text-[9px] font-black uppercase tracking-tighter opacity-0 group-focus-within:opacity-100 transition-opacity">
+                      Enter to save
+                   </div>
                 </div>
              </td>
           </tr>

@@ -43,6 +43,7 @@ export interface Task {
   isGrocery?: boolean; // Explicit flag for grocery tasks
   isJobSearch?: boolean; // Explicit flag for job search tasks
   isProject?: boolean; // Explicit flag for project tasks
+  isBucketlist?: boolean; // Explicit flag for bucket list items
   isWeeklyTracker?: boolean; // Explicit flag for weekly fitness tracker
   showInCalendar?: boolean; // If true, task appears in calendar view
   
@@ -71,4 +72,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Analytics' | 'Calendar' | 'Schedule';
+export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Bucketlist' | 'Analytics' | 'Calendar' | 'Schedule';

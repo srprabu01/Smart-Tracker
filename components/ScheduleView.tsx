@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { Clock, GripVertical, Plus, Activity, Trash2, CheckCircle2, ChevronRight, ChevronLeft, X, Home } from 'lucide-react';
 import { Task, Status } from '../types';
 
@@ -8,23 +8,29 @@ interface ScheduleViewProps {
   onUpdateTask: (task: Task) => Promise<void>;
   onAddTask: (task: Partial<Task>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
+  onReorderTasks: (tasks: Task[]) => Promise<void>;
 }
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
-const getTodayStr = () => {
-  const d = new Date();
-  const offset = d.getTimezoneOffset() * 60000;
-  const local = new Date(d.getTime() - offset);
+const getDayStr = (date: Date = new Date()) => {
+  const offset = date.getTimezoneOffset() * 60000;
+  const local = new Date(date.getTime() - offset);
   return local.toISOString().split('T')[0];
 };
 
-const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddTask, onDeleteTask }) => {
+const ScheduleView: React.FC<ScheduleViewProps> = ({ 
+  tasks, 
+  onUpdateTask, 
+  onAddTask, 
+  onDeleteTask,
+  onReorderTasks
+}) => {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [resizing, setResizing] = useState<{ id: string, edge: 'left' | 'right', initialX: number, initialTime: number, initialDuration: number } | null>(null);
   const [moving, setMoving] = useState<{ id: string, initialX: number, initialTime: number } | null>(null);
   const [localTaskOverrides, setLocalTaskOverrides] = useState<Record<string, Partial<Task>>>({});
-  const [selectedDate, setSelectedDate] = useState(getTodayStr());
+  const [selectedDate, setSelectedDate] = useState(getDayStr());
   const [fitnessWeekOffset, setFitnessWeekOffset] = useState(0);
 
   // Handle resizing and moving
@@ -119,7 +125,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
 
   const { scheduledTasks, maxTracks } = useMemo(() => {
     const items = tasks
-      .filter(t => t.scheduledTime && t.nextDue === selectedDate)
+      .filter(t => t.scheduledTime && t.nextDue === selectedDate && !t.isFitness && !t.isWeeklyTracker && !t.isGrocery && !t.isJobSearch && !t.isProject && !t.isBucketlist)
       .map(t => ({ ...t, ...localTaskOverrides[t.id] }));
 
     // Calculate tracks for overlapping tasks
@@ -149,7 +155,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
   }, [tasks, selectedDate, localTaskOverrides]);
 
   const unscheduledTasks = useMemo(() => {
-    return tasks.filter(t => !t.scheduledTime && t.status !== Status.DONE && !t.isWeeklyTracker);
+    return tasks.filter(t => !t.scheduledTime && t.status !== Status.DONE && !t.isFitness && !t.isWeeklyTracker && !t.isGrocery && !t.isJobSearch && !t.isProject && !t.isBucketlist);
   }, [tasks]);
 
   const handleDragStart = (task: Task) => {
@@ -171,7 +177,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
     setDraggedTaskId(null);
   };
 
-  const isToday = selectedDate === getTodayStr();
+  const isToday = selectedDate === getDayStr();
   const [nowPosition, setNowPosition] = useState<number | null>(null);
 
   React.useEffect(() => {
@@ -204,81 +210,79 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
   };
 
   return (
-    <>
-      <div className="flex flex-col lg:flex-row gap-6 lg:h-[calc(100vh-220px)]">
+    <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
+      <div className="flex flex-col lg:flex-row gap-10 lg:h-[calc(100vh-280px)] mb-20">
         {/* Main Column */}
-        <div className="flex-[3] flex flex-col gap-6 min-h-0 overflow-hidden">
-          {/* Main Grid View: Horizontal Timeline */}
+        <div className="flex-[3] flex flex-col gap-8 min-h-0 overflow-hidden">
           <motion.div 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="flex-1 bg-[#1e1e1e] border border-[#333] rounded-2xl flex flex-col overflow-hidden shadow-2xl"
+            className="flex-1 bg-white border border-app-border rounded-[2.5rem] flex flex-col overflow-hidden shadow-xl"
           >
-          <div className="p-5 border-b border-[#333] flex items-center justify-between bg-[#252525]/50 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400">
-                <Clock className="w-4 h-4" />
+          <div className="p-8 border-b border-app-border flex items-center justify-between bg-white relative z-50">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-app-purple-50 rounded-2xl text-app-purple-600 shadow-sm border border-app-purple-100">
+                <Clock className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-300">Daily Timeline</h2>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-[10px] text-gray-500 font-bold">
+                <h2 className="text-sm font-black uppercase tracking-[0.3em] text-app-ink">Chronos Timeline</h2>
+                <div className="flex items-center gap-3 mt-1">
+                  <p className="text-xs text-app-muted font-bold">
                     {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
                   </p>
                   <button 
-                    onClick={() => setSelectedDate(getTodayStr())}
-                    className="text-[8px] font-black uppercase bg-blue-600/20 text-blue-400 px-1.5 py-0.5 rounded hover:bg-blue-600 hover:text-white transition-colors"
+                    onClick={() => setSelectedDate(getDayStr())}
+                    className="text-[9px] font-black uppercase bg-app-purple-600 text-white px-2 py-1 rounded-lg hover:bg-app-purple-700 transition-all shadow-md shadow-app-purple-100"
                   >
-                    Today
+                    Current
                   </button>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
-               {isToday && (
+            <div className="flex items-center gap-6">
+               {selectedDate === getDayStr() && (
                  <button 
                    onClick={() => {
                      const container = document.getElementById('schedule-grid-container');
                      if (container && nowPosition !== null) {
-                       container.scrollTo({ left: (nowPosition / 100) * 150 - 100, behavior: 'smooth' });
+                       container.scrollTo({ left: (nowPosition / 100) * 150 - 200, behavior: 'smooth' });
                      }
                    }}
-                   className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-red-300 transition-colors"
+                   className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-rose-500 hover:text-rose-600 transition-colors"
                  >
-                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                   Now
+                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.4)]" />
+                   Real-time
                  </button>
                )}
-               <div className="text-[10px] text-gray-500 font-bold uppercase tracking-wider hidden sm:block">
-                 {scheduledTasks.length} Tasks Scheduled
+               <div className="text-[10px] text-app-muted font-black uppercase tracking-widest hidden md:block opacity-40">
+                 {scheduledTasks.length} NODES ACTIVE
                </div>
             </div>
           </div>
 
-          {/* Date Selector Strip */}
-          <div className="bg-[#202020] border-b border-[#333] px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar scroll-smooth scroll-px-4">
+          <div className="bg-app-surface border-b border-app-border px-6 py-4 flex gap-3 overflow-x-auto no-scrollbar scroll-smooth">
             {dateOptions.map(date => {
-              const dateStr = date.toISOString().split('T')[0];
+              const dateStr = getDayStr(date);
               const isSelected = dateStr === selectedDate;
-              const isTodayDate = dateStr === getTodayStr();
+              const isTodayDate = dateStr === getDayStr();
               
               return (
                 <button
                   key={dateStr}
                   onClick={() => setSelectedDate(dateStr)}
-                  className={`flex flex-col items-center min-w-[56px] py-2.5 rounded-2xl transition-all border ${
+                  className={`flex flex-col items-center min-w-[70px] py-3 rounded-2xl transition-all border ${
                     isSelected 
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20 border-blue-500' 
+                    ? 'bg-app-purple-600 text-white shadow-xl shadow-app-purple-200 border-app-purple-500 scale-105 z-10' 
                     : isTodayDate
-                      ? 'bg-white/5 text-blue-400 border-blue-500/30'
-                      : 'hover:bg-white/5 text-gray-400 border-transparent'
+                      ? 'bg-white text-app-purple-600 border-app-purple-200 shadow-sm'
+                      : 'bg-white hover:bg-app-surface text-app-muted border-app-border'
                   }`}
                 >
-                  <span className="text-[8px] font-black uppercase tracking-widest mb-1 opacity-70">
+                  <span className={`text-[9px] font-black uppercase tracking-widest mb-1 ${isSelected ? 'opacity-70' : 'opacity-40'}`}>
                     {date.toLocaleDateString('en-US', { weekday: 'short' })}
                   </span>
-                  <span className="text-sm font-bold tabular-nums">
+                  <span className="text-base font-black tabular-nums font-display">
                     {date.getDate()}
                   </span>
                 </button>
@@ -286,61 +290,53 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
             })}
           </div>
 
-          <div id="schedule-grid-container" className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar bg-[#151515] scroll-smooth">
-            <div className="relative inline-flex flex-col min-h-full w-[3600px]">
-               {/* Timeline Header */}
-               <div className="flex h-12 border-b border-[#2a2a2a] bg-[#1a1a1a]/50 backdrop-blur-sm sticky top-0 z-20">
+          <div id="schedule-grid-container" className="flex-1 overflow-x-auto overflow-y-auto relative custom-scrollbar bg-app-surface scroll-smooth p-4">
+            <div className="relative inline-flex flex-col min-h-full w-[3600px] bg-white rounded-[2rem] border border-app-border shadow-inner">
+               <div className="flex h-16 border-b border-app-border bg-white sticky top-0 z-20 rounded-t-[2rem]">
                  {HOURS.map(hour => (
-                   <div key={hour} className="w-[150px] shrink-0 flex items-center justify-center border-r border-[#2a2a2a]/30">
-                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest tabular-nums">
+                   <div key={hour} className="w-[150px] shrink-0 flex items-center justify-center border-r border-app-border last:border-r-0">
+                     <span className="text-[10px] font-black text-app-muted uppercase tracking-[0.2em] tabular-nums opacity-60">
                        {formatTime(hour)}
                      </span>
                    </div>
                  ))}
                </div>
 
-               {/* Drop Zone Strip */}
-               <div 
-                 className="flex-1 relative"
-                 style={{ minHeight: `${Math.max(400, (maxTracks || 0) * 132 + 40)}px` }}
-               >
-                 {/* Now Indicator */}
+               <div className="flex-1 relative" style={{ minHeight: `${Math.max(400, (maxTracks || 0) * 140 + 60)}px` }}>
                  {nowPosition !== null && (
                    <div 
                      className="absolute top-0 bottom-0 z-40 flex flex-col items-center pointer-events-none"
                      style={{ left: `${(nowPosition / 100) * 150}px` }}
                    >
-                     <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-                     <div className="flex-1 w-[2px] bg-red-500/50" />
+                     <div className="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_15px_rgba(244,63,94,0.6)]" />
+                     <div className="flex-1 w-[2px] bg-rose-500/40" />
                    </div>
                  )}
 
-                  {/* Hour Slots Layer */}
                   <div className="absolute inset-0 flex h-full">
                     {HOURS.map(hour => (
                       <div 
                         key={hour} 
                         onDragOver={(e) => { e.preventDefault(); }}
                         onDrop={() => handleDropOnTime(hour)}
-                        className="w-[150px] shrink-0 border-r border-[#2a2a2a]/50 relative group transition-colors hover:bg-white/[0.01]"
+                        className="w-[150px] shrink-0 border-r border-app-border/30 relative group transition-colors hover:bg-app-purple-50/30"
                       >
                         <button 
                           onClick={() => {
                             if (resizing || moving || draggedTaskId) return;
-                            onAddTask({ title: 'New Event', scheduledTime: formatTime(hour), scheduledDuration: 60, nextDue: selectedDate });
+                            onAddTask({ title: 'New Protocol', scheduledTime: formatTime(hour), scheduledDuration: 60, nextDue: selectedDate });
                           }}
-                          className="absolute inset-0 h-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 flex flex-col items-center justify-end pb-6 transition-all"
+                          className="absolute inset-0 h-full opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all bg-app-purple-500/5 group-hover:backdrop-blur-[2px]"
                         >
-                          <div className="flex flex-col items-center gap-2 text-gray-600 hover:text-white group/btn">
-                             <Plus className="w-3 h-3" />
-                             <span className="text-[8px] font-black uppercase tracking-[0.2em] transition-transform">Schedule</span>
+                          <div className="flex flex-col items-center gap-3 text-app-purple-400 group-hover:scale-110 transition-transform">
+                             <div className="w-10 h-10 rounded-full bg-white shadow-lg flex items-center justify-center"><Plus className="w-5 h-5" /></div>
+                             <span className="text-[9px] font-black uppercase tracking-[0.3em]">SYNCHRONIZE</span>
                           </div>
                         </button>
                       </div>
                     ))}
                   </div>
 
-                  {/* Tasks Layer */}
                   <div className="relative z-10 pointer-events-none">
                     <AnimatePresence>
                       {scheduledTasks.map(task => {
@@ -349,10 +345,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
                         const duration = task.scheduledDuration || 60;
                         const leftPos = (startMinutes / 60) * 150;
                         const widthVal = (duration / 60) * 150;
-
                         const trackIndex = (task as any).trackIndex || 0;
-                        const trackHeight = 120; // Fixed height per track
-                        const topPos = 20 + (trackIndex * (trackHeight + 12));
+                        const trackHeight = 110;
+                        const topPos = 30 + (trackIndex * (trackHeight + 15));
 
                         return (
                           <motion.div
@@ -360,7 +355,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
                             key={task.id}
                             style={{ 
                               left: `${leftPos}px`, 
-                              width: `${widthVal - 8}px`,
+                              width: `${widthVal - 12}px`,
                               top: `${topPos}px`,
                               height: `${trackHeight}px`,
                               zIndex: (moving?.id === task.id || resizing?.id === task.id) ? 50 : 20,
@@ -368,199 +363,155 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
                             }}
                             initial={{ scale: 0.9, opacity: 0 }}
                             animate={{ 
-                              scale: (moving?.id === task.id || resizing?.id === task.id) ? 1.02 : 1, 
-                              opacity: task.status === Status.DONE ? 0.6 : (draggedTaskId === task.id ? 0.4 : 1),
-                              filter: task.status === Status.DONE ? 'grayscale(0.5)' : 'none',
+                              scale: (moving?.id === task.id || resizing?.id === task.id) ? 1.05 : 1, 
+                              opacity: task.status === Status.DONE ? 0.4 : (draggedTaskId === task.id ? 0.3 : 1),
+                              y: (moving?.id === task.id || resizing?.id === task.id) ? -4 : 0,
                               boxShadow: (moving?.id === task.id || resizing?.id === task.id) 
-                                ? '0 25px 50px -12px rgba(0, 0, 0, 0.5)' 
-                                : '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                ? '0 30px 60px -12px rgba(139, 92, 246, 0.3)' 
+                                : '0 10px 20px -5px rgba(0, 0, 0, 0.05)'
                             }}
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            whileHover={{ scale: 1.02, zIndex: 60 }}
+                            exit={{ scale: 0.8, opacity: 0 }}
+                            whileHover={{ scale: 1.01, zIndex: 60 }}
                             onMouseDown={(e) => {
                               const [h, m] = task.scheduledTime!.split(':').map(Number);
-                              setMoving({
-                                id: task.id,
-                                initialX: e.clientX,
-                                initialTime: h * 60 + m
-                              });
+                              setMoving({ id: task.id, initialX: e.clientX, initialTime: h * 60 + m });
                             }}
-                            className={`absolute rounded-2xl overflow-hidden border-2 flex flex-col group transition-all select-none cursor-move ${
-                              task.status === Status.DONE ? 'bg-[#1a1a1a] border-[#333]' :
-                              task.priority === 'High' ? 'bg-red-500/10 border-red-500/30' :
-                              task.priority === 'Medium' ? 'bg-orange-500/10 border-orange-500/30' :
-                              'bg-blue-500/10 border-blue-500/40'
-                            } ${ (moving?.id === task.id || resizing?.id === task.id) ? 'ring-2 ring-blue-500/50' : ''}`}
+                            className={`absolute rounded-3xl overflow-hidden border-2 flex flex-col group transition-all select-none cursor-grab active:cursor-grabbing ${
+                              task.status === Status.DONE ? 'bg-app-surface border-app-border' :
+                              task.priority === 'High' ? 'bg-rose-50 border-rose-200 shadow-sm' :
+                              task.priority === 'Medium' ? 'bg-amber-50 border-amber-200 shadow-sm' :
+                              'bg-white border-app-purple-100 shadow-sm'
+                            } ${ (moving?.id === task.id || resizing?.id === task.id) ? 'border-app-purple-400 border-2' : ''}`}
                           >
-                          {/* Resize Handles */}
                           <div 
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               const [h, m] = task.scheduledTime!.split(':').map(Number);
-                              setResizing({
-                                id: task.id,
-                                edge: 'left',
-                                initialX: e.clientX,
-                                initialTime: h * 60 + m,
-                                initialDuration: task.scheduledDuration || 60
-                              });
+                              setResizing({ id: task.id, edge: 'left', initialX: e.clientX, initialTime: h * 60 + m, initialDuration: task.scheduledDuration || 60 });
                             }}
-                            className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/10 z-10" 
+                            className="absolute left-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-app-purple-500/10 z-10" 
                           />
                           <div 
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               const [h, m] = task.scheduledTime!.split(':').map(Number);
-                              setResizing({
-                                id: task.id,
-                                edge: 'right',
-                                initialX: e.clientX,
-                                initialTime: h * 60 + m,
-                                initialDuration: task.scheduledDuration || 60
-                              });
+                              setResizing({ id: task.id, edge: 'right', initialX: e.clientX, initialTime: h * 60 + m, initialDuration: task.scheduledDuration || 60 });
                             }}
-                            className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/10 z-10" 
+                            className="absolute right-0 top-0 bottom-0 w-3 cursor-ew-resize hover:bg-app-purple-500/10 z-10" 
                           />
 
-                          <div className="p-4 flex-1 overflow-hidden">
-                            <div className="flex flex-col justify-between h-full pointer-events-none">
+                          <div className="p-5 flex-1 flex flex-col justify-between pointer-events-none">
                               <div className="min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <div className={`w-1.5 h-1.5 rounded-full ${
-                                      task.status === Status.DONE ? 'bg-green-500' :
-                                      task.priority === 'High' ? 'bg-red-500' :
-                                      task.priority === 'Medium' ? 'bg-orange-500' :
-                                      'bg-blue-500'
-                                    }`} />
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#999] tabular-nums flex items-center gap-1.5">
-                                      <span className="text-blue-400/80">{task.scheduledTime}</span>
-                                      <span className="opacity-30">→</span>
-                                      <span className="text-blue-400/80">{getEndTime(task.scheduledTime!, task.scheduledDuration || 60)}</span>
-                                      <span className="ml-1 text-[8px] bg-white/5 px-1.5 py-0.5 rounded text-gray-400">
-                                        {task.scheduledDuration || 60}M
-                                      </span>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className={`w-2 h-2 rounded-full ${
+                                      task.status === Status.DONE ? 'bg-emerald-500' :
+                                      task.priority === 'High' ? 'bg-rose-500' :
+                                      task.priority === 'Medium' ? 'bg-amber-500' :
+                                      'bg-app-purple-500'
+                                    } shadow-[0_0_8px_currentColor]`} />
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-app-muted tabular-nums flex items-center gap-2">
+                                      <span className="text-app-purple-600">{task.scheduledTime}</span>
+                                      <span className="opacity-20">—</span>
+                                      <span className="text-app-purple-600">{getEndTime(task.scheduledTime!, task.scheduledDuration || 60)}</span>
+                                      <span className="ml-2 font-display">{task.scheduledDuration || 60}m</span>
                                     </p>
                                   </div>
-                                  <h3 className={`text-sm font-bold truncate group-hover:text-blue-400 transition-colors uppercase tracking-tight ${
-                                    task.status === Status.DONE ? 'text-gray-500 line-through' : 'text-white'
+                                  <h3 className={`text-sm font-black truncate font-display tracking-tight leading-none ${
+                                    task.status === Status.DONE ? 'text-app-muted line-through' : 'text-app-ink'
                                   }`}>{task.title}</h3>
                               </div>
                               
                               <div 
-                                className="flex items-center justify-between mt-4 pointer-events-auto"
+                                className="flex items-center justify-between pointer-events-auto"
                                 onMouseDown={(e) => e.stopPropagation()}
                               >
-                                <div className="flex gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={() => onUpdateTask({ ...task, scheduledTime: null })}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-transform"
-                                    title="Unschedule"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </button>
-                                  <button 
-                                    onClick={() => onDeleteTask(task.id)}
-                                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-red-400 transition-colors"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                  </button>
+                                <div className="flex gap-2">
+                                  <button onClick={() => onUpdateTask({ ...task, scheduledTime: null })} className="p-2 hover:bg-app-surface rounded-xl text-app-muted hover:text-app-ink transition-colors border border-transparent hover:border-app-border" title="Detach"><X className="w-3.5 h-3.5" /></button>
+                                  <button onClick={() => onDeleteTask(task.id)} className="p-2 hover:bg-rose-50 rounded-xl text-app-muted hover:text-rose-500 transition-colors border border-transparent hover:border-rose-100"><Trash2 className="w-3.5 h-3.5" /></button>
                                 </div>
-
                                 <button 
                                   onClick={() => onUpdateTask({ ...task, status: task.status === Status.DONE ? Status.TODO : Status.DONE })}
-                                  className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${
-                                    task.status === Status.DONE 
-                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
-                                    : 'bg-[#333] text-gray-400 hover:bg-blue-600 hover:text-white'
+                                  className={`w-9 h-9 rounded-2xl flex items-center justify-center transition-all shadow-md ${
+                                    task.status === Status.DONE ? 'bg-emerald-500 text-white shadow-emerald-100' : 'bg-white text-app-muted hover:text-app-purple-600 border border-app-border hover:shadow-lg'
                                   }`}
                                 >
-                                  {task.status === Status.DONE ? <CheckCircle2 className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                                  {task.status === Status.DONE ? <CheckCircle2 className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                                 </button>
                               </div>
-                            </div>
                           </div>
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                </div>
-              </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </div>
+               </div>
             </div>
           </div>
-        </motion.div>
-      </div>
+          </motion.div>
+        </div>
 
-      {/* Sidebar: Activity Feed */}
+        {/* Sidebar: Activity Feed */}
         <motion.div 
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          className="w-full lg:w-1/4 bg-[#1e1e1e] border border-[#333] rounded-2xl flex flex-col h-[400px] lg:h-full overflow-hidden shadow-2xl shrink-0"
+          className="w-full lg:w-1/4 bg-white border border-app-border rounded-[2.5rem] flex flex-col h-[450px] lg:h-full overflow-hidden shadow-xl shrink-0"
         >
-          <div className="p-5 border-b border-[#333] flex items-center justify-between bg-[#252525]/50 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-                <Activity className="w-4 h-4" />
+          <div className="p-8 border-b border-app-border flex items-center justify-between bg-app-surface/30">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-app-purple-600 rounded-2xl text-white shadow-lg shadow-app-purple-100">
+                <Activity className="w-5 h-5" />
               </div>
-              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-gray-300">Activity</h2>
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-app-ink">Queue</h2>
             </div>
             <motion.button 
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
-              onClick={() => onAddTask({ title: 'New Task', scheduledDuration: 60 })}
-              className="p-2 hover:bg-white/5 rounded-xl transition-colors text-gray-500 hover:text-white"
+              onClick={() => onAddTask({ title: 'New Action', scheduledDuration: 60 })}
+              className="p-3 bg-white border border-app-border rounded-xl shadow-sm text-app-purple-600 hover:text-app-purple-700 transition-all hover:shadow-md"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </motion.button>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar bg-[#1a1a1a]">
-            <AnimatePresence mode="popLayout">
-              {unscheduledTasks.length === 0 ? (
-                 <motion.div 
-                   initial={{ opacity: 0 }}
-                   animate={{ opacity: 1 }}
-                   className="text-center py-20 flex flex-col items-center gap-3"
-                 >
-                    <div className="w-12 h-12 rounded-2xl border-2 border-dashed border-[#333] flex items-center justify-center text-gray-600">
-                      <Activity className="w-5 h-5 opacity-20" />
-                    </div>
-                    <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest leading-loose max-w-[120px]">
-                      No pending activities to schedule
-                    </p>
-                 </motion.div>
-              ) : (
-                unscheduledTasks.map(task => (
-                  <motion.div
-                    layout
-                    key={task.id}
-                    draggable
-                    onDragStart={() => handleDragStart(task)}
-                    onDragEnd={() => setDraggedTaskId(null)}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    whileHover={{ y: -2, borderColor: '#3b82f6' }}
-                    className="bg-[#252525] border border-[#373737] p-4 rounded-xl cursor-grab active:cursor-grabbing transition-colors group shadow-sm"
-                  >
-                    <div className="flex items-center gap-3">
-                      <GripVertical className="w-4 h-4 text-gray-600 group-hover:text-blue-400 transition-colors" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">{task.title}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${
-                            task.priority === 'High' ? 'bg-red-500/20 text-red-500' :
-                            task.priority === 'Medium' ? 'bg-orange-500/20 text-orange-500' :
-                            'bg-blue-500/20 text-blue-500'
-                          }`}>
-                            {task.priority}
-                          </span>
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-white">
+            <Reorder.Group axis="y" values={unscheduledTasks} onReorder={(newOrder) => {
+               // We need a stable way to reorder these in the global state
+               onReorderTasks(newOrder);
+            }} className="space-y-4">
+              <AnimatePresence mode="popLayout">
+                {unscheduledTasks.length === 0 ? (
+                   <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col items-center justify-center text-center px-10 gap-6">
+                      <div className="w-20 h-20 rounded-[2rem] bg-app-surface border-2 border-dashed border-app-border flex items-center justify-center text-app-muted/30"><Activity className="w-8 h-8" /></div>
+                      <p className="text-[10px] text-app-muted font-black uppercase tracking-[0.3em] leading-relaxed">System clear. No pending protocols required.</p>
+                   </motion.div>
+                ) : (
+                  unscheduledTasks.map(task => (
+                    <Reorder.Item
+                      key={task.id}
+                      value={task}
+                      dragListener={!draggedTaskId}
+                      onDragStart={() => handleDragStart(task)}
+                      onDragEnd={() => setDraggedTaskId(null)}
+                      className="bg-white border border-app-border p-5 rounded-3xl cursor-grab active:cursor-grabbing hover:border-app-purple-400 hover:shadow-xl transition-all group relative active:scale-98 shadow-sm"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="p-2 bg-app-surface rounded-xl text-app-muted group-hover:text-app-purple-600 group-hover:bg-app-purple-50 transition-all"><GripVertical className="w-4 h-4" /></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-black text-app-ink font-display line-clamp-1">{task.title}</p>
+                          <div className="mt-2 flex items-center gap-2">
+                             <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border ${
+                               task.priority === 'High' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                               task.priority === 'Medium' ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                               'bg-blue-50 text-blue-600 border-blue-100'
+                             }`}>{task.priority}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                ))
-              )}
-            </AnimatePresence>
+                    </Reorder.Item>
+                  ))
+                )}
+              </AnimatePresence>
+            </Reorder.Group>
           </div>
         </motion.div>
       </div>
@@ -569,103 +520,100 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
     <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="mt-8 bg-[#1e1e1e] border border-[#333] rounded-2xl overflow-hidden shadow-2xl p-6"
+        className="bg-app-ink text-white rounded-[3rem] p-12 shadow-2xl relative overflow-hidden group mb-32"
     >
-        <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-500/10 rounded-xl text-green-400">
-                <Activity className="w-5 h-5" />
-            </div>
-            <div>
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-300">Weekly Fitness Tracker</h2>
-                <p className="text-[11px] text-gray-500 font-bold uppercase tracking-wider mt-1">Plan your weekly workout routine</p>
-            </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-[#333]">
-                <button 
-                  onClick={() => setFitnessWeekOffset(prev => prev - 1)}
-                  className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
-                  title="Previous Week"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => setFitnessWeekOffset(0)}
-                  className="text-[9px] font-black uppercase tracking-[0.2em] px-3 text-gray-500 hover:text-white transition-colors"
-                >
-                  Current
-                </button>
-                <button 
-                  onClick={() => setFitnessWeekOffset(prev => prev + 1)}
-                  className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
-                  title="Next Week"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+        <div className="absolute top-0 right-0 p-48 bg-app-purple-500/20 rounded-full blur-[120px] -mr-16 -mt-16 pointer-events-none group-hover:bg-app-purple-500/30 transition-all duration-1000"></div>
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 relative z-10 gap-8">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-app-purple-500/20 rounded-[1.5rem] text-app-purple-400 border border-app-purple-500/30 shadow-[0_0_20px_rgba(139,92,246,0.2)]">
+                  <Activity className="w-8 h-8" />
               </div>
-              <div className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] bg-white/5 px-3 py-1.5 rounded-lg border border-[#333]">
-                7 Day Overview
+              <div>
+                  <h2 className="text-3xl font-black tracking-tight font-display">Biometric Sync</h2>
+                  <p className="text-[10px] text-app-purple-400 font-black uppercase tracking-[0.4em] mt-2 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-app-purple-400 animate-pulse"></div>
+                    Dynamic Weekly Training
+                  </p>
               </div>
+            </div>
+            
+            <div className="flex items-center gap-4 bg-white/5 p-2 rounded-[1.5rem] border border-white/10 backdrop-blur-md">
+              <button 
+                onClick={() => setFitnessWeekOffset(prev => prev - 1)}
+                className="p-3 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all"
+                title="Previous Week"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={() => setFitnessWeekOffset(0)} className="text-[10px] font-black uppercase tracking-[0.3em] px-4 text-white/40 hover:text-white transition-all">Current Grid</button>
+              <button 
+                onClick={() => setFitnessWeekOffset(prev => prev + 1)}
+                className="p-3 hover:bg-white/10 rounded-xl text-white/40 hover:text-white transition-all"
+                title="Next Week"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-6 relative z-10">
         {Array.from({ length: 7 }).map((_, i) => {
             const d = new Date();
             const first = d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1); 
-            const dayDate = new Date(d.setDate(first + i + (fitnessWeekOffset * 7)));
-            const dayStr = dayDate.toISOString().split('T')[0];
-            const isTodayDay = dayStr === getTodayStr();
+            const dayDate = new Date(d.getFullYear(), d.getMonth(), first + i + (fitnessWeekOffset * 7));
+            const dayStr = getDayStr(dayDate);
+            const isTodayDay = dayStr === getDayStr();
 
             const gymTask = tasks.find(t => t.isWeeklyTracker && t.nextDue === dayStr && t.title.toLowerCase().includes('gym'));
+            const homeTask = tasks.find(t => t.isWeeklyTracker && t.nextDue === dayStr && t.title.toLowerCase().includes('home'));
 
             return (
             <div 
                 key={dayStr}
-                className={`p-4 rounded-2xl border transition-all flex flex-col gap-3 min-h-[120px] ${
-                isTodayDay ? 'bg-blue-600/10 border-blue-500/50 ring-1 ring-blue-500/20' : 'bg-[#252525] border-[#333] hover:border-gray-500'
+                className={`p-6 rounded-[2rem] border transition-all flex flex-col gap-4 min-h-[160px] group/card ${
+                isTodayDay ? 'bg-white/10 border-app-purple-500/50 shadow-2xl shadow-app-purple-500/20' : 'bg-white/5 border-white/10 hover:border-white/20'
                 }`}
             >
-                <div className="flex items-center justify-between border-b border-[#333] pb-2">
-                <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${isTodayDay ? 'text-blue-400' : 'text-gray-500'}`}>
-                    {dayDate.toLocaleDateString('en-US', { weekday: 'short' })}
-                </span>
-                <span className={`text-xs font-black tabular-nums ${isTodayDay ? 'text-blue-400' : 'text-gray-600'}`}>
-                    {dayDate.getDate()}
-                </span>
+                <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                  <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${isTodayDay ? 'text-app-purple-400' : 'text-white/30'}`}>
+                      {dayDate.toLocaleDateString('en-US', { weekday: 'short' })}
+                  </span>
+                  <span className={`text-base font-black tabular-nums font-display ${isTodayDay ? 'text-app-purple-400' : 'text-white/20 group-hover/card:text-white/60'} transition-colors`}>
+                      {dayDate.getDate()}
+                  </span>
                 </div>
                 
-                <div className="relative group/gym flex-1">
+                <div className="relative flex-1">
                 <textarea 
-                    placeholder="Workout Plan..."
-                    defaultValue={gymTask?.title?.replace(/gym/i, '').trim() || ''}
+                    placeholder="Log Session..."
+                    defaultValue={gymTask?.title?.replace(/gym/i, '').replace(/:/g, '').trim() || ''}
                     onBlur={async (e) => {
-                    const val = e.target.value.trim();
-                    if (val) {
-                        if (gymTask) {
-                        await onUpdateTask({ ...gymTask, title: `Gym: ${val}` });
-                        } else {
-                        await onAddTask({ title: `Gym: ${val}`, isWeeklyTracker: true, nextDue: dayStr });
-                        }
-                    }
+                      const val = e.target.value.trim();
+                      if (val) {
+                          if (gymTask) {
+                            await onUpdateTask({ ...gymTask, title: `Gym: ${val}` });
+                          } else {
+                            await onAddTask({ title: `Gym: ${val}`, isWeeklyTracker: true, nextDue: dayStr });
+                          }
+                      }
                     }}
-                    className="w-full bg-transparent border-none text-xs font-bold text-white placeholder:text-gray-800 outline-none focus:placeholder:opacity-0 transition-opacity resize-none leading-relaxed"
+                    className="w-full bg-transparent border-none text-xs font-black text-white placeholder:text-white/10 outline-none focus:placeholder:opacity-0 transition-opacity resize-none leading-relaxed font-display"
                     rows={2}
                 />
                 </div>
 
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-[#333]">
+                <div className="flex items-center justify-between mt-auto">
                     <div className="flex gap-2">
                         {gymTask && (
                             <button 
                                 onClick={() => onUpdateTask({ ...gymTask, status: gymTask.status === Status.DONE ? Status.TODO : Status.DONE })}
-                                className={`p-1.5 rounded-lg transition-all ${
+                                className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
                                     gymTask.status === Status.DONE 
-                                    ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' 
-                                    : 'bg-gray-800 text-gray-500 hover:text-white'
+                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' 
+                                    : 'bg-white/10 text-white/40 hover:text-white hover:bg-white/20'
                                 }`}
-                                title="Mark as Done"
+                                title="Sync Complete"
                             >
                                 <CheckCircle2 className="w-4 h-4" />
                             </button>
@@ -673,30 +621,31 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ tasks, onUpdateTask, onAddT
                         <button 
                             onClick={async () => {
                                 const title = `Home Workout: ${dayDate.toLocaleDateString('en-US', { weekday: 'short' })}`;
-                                const existing = tasks.find(t => t.isWeeklyTracker && t.nextDue === dayStr && t.title.toLowerCase().includes('home'));
-                                if (!existing) {
+                                if (homeTask) {
+                                    await onDeleteTask(homeTask.id);
+                                } else {
                                     await onAddTask({ title, isWeeklyTracker: true, nextDue: dayStr });
                                 }
                             }}
-                            className={`p-1.5 rounded-lg transition-all ${
-                                tasks.find(t => t.isWeeklyTracker && t.nextDue === dayStr && t.title.toLowerCase().includes('home'))
-                                ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' 
-                                : 'bg-gray-800 text-gray-500 hover:text-white'
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                                homeTask
+                                ? 'bg-app-purple-500 text-white shadow-lg shadow-app-purple-500/30' 
+                                : 'bg-white/10 text-white/40 hover:text-white hover:bg-white/20'
                             }`}
-                            title="Home Workout"
+                            title="Home Base Training"
                         >
                             <Home className="w-4 h-4" />
                         </button>
                     </div>
-                    {isTodayDay && <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />}
+                    {isTodayDay && <div className="w-2 h-2 rounded-full bg-app-purple-400 animate-pulse shadow-[0_0_10px_rgba(139,92,246,0.6)]" />}
                 </div>
             </div>
             );
         })}
         </div>
-    </motion.div>
-    </>
-);
+      </motion.div>
+    </div>
+  );
 };
 
 export default ScheduleView;

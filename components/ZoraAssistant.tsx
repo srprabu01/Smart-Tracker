@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, LiveServerMessage, Modality, Type, FunctionDeclaration, Blob } from '@google/genai';
 import { Task, Status, Priority, Frequency, FitnessCategory } from '../types.ts';
 import { IconMic, IconSparkles } from './Icons.tsx';
@@ -316,51 +317,83 @@ const ZoraAssistant: React.FC<ZoraAssistantProps> = ({ tasks, onAddTask, onUpdat
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-      {errorMsg && (
-          <div className="bg-red-500 text-white text-[10px] px-3 py-1 rounded-full animate-bounce shadow-lg">
-              {errorMsg}
-          </div>
-      )}
-      <div className="flex items-center gap-3">
-          <button
+    <div className="fixed bottom-10 right-10 z-50 flex flex-col items-end gap-5">
+      <AnimatePresence>
+        {errorMsg && (
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 10 }}
+              className="bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-2xl shadow-2xl shadow-rose-200 border border-rose-400"
+            >
+                {errorMsg}
+            </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center gap-4">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => setIsWakeWordMode(!isWakeWordMode)}
             title={isWakeWordMode ? "Listening for 'Zora'" : "Enable Wake word"}
-            className={`p-3 rounded-full shadow-lg transition-all border ${
+            className={`p-5 rounded-[1.5rem] shadow-xl transition-all border-2 ${
                 isWakeWordMode 
-                ? 'bg-purple-600/20 border-purple-500 text-purple-400' 
-                : 'bg-[#202020] border-[#373737] text-gray-500 hover:text-white'
+                ? 'bg-app-purple-50 border-app-purple-500 text-app-purple-600 shadow-app-purple-100' 
+                : 'bg-white border-app-border text-app-muted hover:text-app-ink hover:border-app-ink'
             }`}
           >
             <div className={isWakeWordMode && !connected ? 'animate-pulse' : ''}>
-                <IconRadio className="w-6 h-6" />
+                <IconRadio className="w-8 h-8" />
             </div>
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={connected ? disconnect : connectToZora}
-            className={`flex items-center gap-2 px-4 py-3 rounded-full shadow-2xl transition-all duration-300 ${
+            className={`flex items-center gap-4 pl-6 pr-8 py-5 rounded-[2rem] shadow-2xl transition-all duration-500 border-2 overflow-hidden relative group ${
               connected 
-                ? 'bg-red-500 hover:bg-red-600 animate-pulse text-white' 
+                ? 'bg-rose-500 border-rose-400 text-white shadow-rose-100' 
                 : isWakeWordMode && !connected
-                    ? 'bg-[#2a2a2a] border border-purple-500/50 text-gray-300 hover:bg-[#333]'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white'
+                    ? 'bg-app-purple-600 border-app-purple-500 text-white shadow-app-purple-200'
+                    : 'bg-app-ink border-app-ink text-white hover:bg-app-purple-600 hover:border-app-purple-500'
             }`}
           >
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+            
             <div className="relative">
-                 <IconMic className="w-6 h-6" />
+                 {connected && (
+                   <motion.div 
+                     initial={{ scale: 0 }}
+                     animate={{ scale: [1, 1.5, 1] }}
+                     transition={{ repeat: Infinity, duration: 2 }}
+                     className="absolute -inset-2 bg-white/20 rounded-full blur-md"
+                   />
+                 )}
+                 <IconMic className="w-8 h-8 relative z-10" />
                  {connected && isSpeaking && (
-                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border border-[#191919]"></span>
+                     <motion.span 
+                       initial={{ scale: 0 }}
+                       animate={{ scale: 1 }}
+                       className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-rose-500 z-20"
+                     ></motion.span>
                  )}
             </div>
-            <span className="font-semibold">
-                {connected 
-                    ? (isSpeaking ? 'Zora Speaking...' : 'Listening...') 
-                    : isWakeWordMode 
-                        ? 'Say "Zora"' 
-                        : 'Call Zora'}
-            </span>
-          </button>
+            
+            <div className="flex flex-col items-start relative z-10">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 leading-none mb-1">
+                  {connected ? 'Real-time Hub' : 'Autonomous AI'}
+                </span>
+                <span className="text-sm font-black font-display tracking-tight leading-none uppercase">
+                    {connected 
+                        ? (isSpeaking ? 'Zora Response' : 'Awaiting Data') 
+                        : isWakeWordMode 
+                            ? 'Say "Zora"' 
+                            : 'Initialize Link'}
+                </span>
+            </div>
+          </motion.button>
       </div>
     </div>
   );

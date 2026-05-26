@@ -11,9 +11,9 @@ interface ProjectsBoardProps {
 
 const ProjectsBoard: React.FC<ProjectsBoardProps> = ({ tasks, onUpdateTask, onAddTask, onDeleteTask }) => {
   const columns = [
-    { title: 'Ideas', status: Status.TODO, icon: <IconLightbulb className="w-4 h-4 text-yellow-400" /> },
-    { title: 'In Progress', status: Status.IN_PROGRESS, icon: <IconRotateCcw className="w-4 h-4 text-blue-400" /> },
-    { title: 'Completed', status: Status.DONE, icon: <IconCheckCircle className="w-4 h-4 text-green-400" /> },
+    { title: 'Protocols', status: Status.TODO, icon: <IconLightbulb className="w-5 h-5 text-app-purple-500" /> },
+    { title: 'In Execution', status: Status.IN_PROGRESS, icon: <IconRotateCcw className="w-5 h-5 text-amber-500" /> },
+    { title: 'Archive', status: Status.DONE, icon: <IconCheckCircle className="w-5 h-5 text-emerald-500" /> },
   ];
 
   const getColumnTasks = (status: Status) => {
@@ -34,33 +34,33 @@ const ProjectsBoard: React.FC<ProjectsBoardProps> = ({ tasks, onUpdateTask, onAd
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8 px-4 lg:px-0">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-10 pb-32 px-2 scroll-smooth">
       {columns.map(col => (
         <div 
           key={col.title}
           onDragOver={e => e.preventDefault()}
           onDrop={e => handleDrop(e, col.status)}
-          className="flex flex-col w-full bg-[#1a1a1a]/50 rounded-xl p-4 border border-[#333]"
+          className="flex flex-col w-full bg-transparent"
         >
-          <div className="flex items-center justify-between mb-6 px-1">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-[#252525] rounded-lg border border-[#333]">
+          <div className="flex items-center justify-between mb-8 px-6 py-5 bg-white border border-app-border rounded-3xl shadow-sm">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-app-surface rounded-2xl border border-app-border shadow-inner">
                 {col.icon}
               </div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">{col.title}</h3>
-              <span className="text-xs text-notion-muted bg-[#252525] px-2 py-0.5 rounded-full border border-[#333]">
+              <h3 className="text-[11px] font-black text-app-ink uppercase tracking-[0.25em]">{col.title}</h3>
+              <span className="text-[10px] font-black text-app-purple-700 bg-app-purple-50 px-3 py-1 rounded-full border border-app-purple-100 shadow-sm">
                 {getColumnTasks(col.status).length}
               </span>
             </div>
             <button 
               onClick={() => onAddTask({ status: col.status, isProject: true, title: '', priority: Priority.MEDIUM, frequency: Frequency.ONCE, nextDue: new Date().toISOString().split('T')[0] })}
-              className="text-notion-muted hover:text-white hover:bg-[#333] p-1.5 rounded-lg transition-all"
+              className="text-app-muted hover:text-app-purple-600 hover:bg-app-purple-50 p-2.5 rounded-2xl transition-all border border-transparent hover:border-app-purple-100"
             >
-              <IconPlus className="w-4 h-4" />
+              <IconPlus className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="flex flex-col gap-4 min-h-[600px]">
+          <div className="flex flex-col gap-6 min-h-[600px] h-full">
             {getColumnTasks(col.status).map(task => (
               <ProjectCard 
                 key={task.id} 
@@ -72,10 +72,12 @@ const ProjectsBoard: React.FC<ProjectsBoardProps> = ({ tasks, onUpdateTask, onAd
             ))}
             <button 
               onClick={() => onAddTask({ status: col.status, isProject: true, title: '', priority: Priority.MEDIUM, frequency: Frequency.ONCE, nextDue: new Date().toISOString().split('T')[0] })}
-              className="flex items-center gap-2 text-notion-muted hover:text-notion-text hover:bg-[#252525] p-3 rounded-xl text-sm transition-all border border-dashed border-[#333] group"
+              className="group flex flex-col items-center justify-center gap-4 p-10 rounded-[2.5rem] border-2 border-dashed border-app-border text-app-muted hover:text-app-purple-600 hover:border-app-purple-200 hover:bg-white transition-all shadow-sm hover:shadow-xl font-black uppercase text-[10px] tracking-[0.3em]"
             >
-              <IconPlus className="w-4 h-4 group-hover:scale-110 transition-transform" /> 
-              <span className="font-medium">Add a project</span>
+              <div className="w-12 h-12 rounded-2xl bg-app-surface flex items-center justify-center group-hover:scale-110 transition-transform">
+                <IconPlus className="w-6 h-6" /> 
+              </div>
+              Initialize Node
             </button>
           </div>
         </div>
@@ -89,17 +91,17 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
 
   if (isEditing) {
     return (
-      <div className="bg-[#252525] border-2 border-blue-500/50 rounded-xl p-4 shadow-2xl animate-in fade-in zoom-in duration-200">
+      <div className="bg-white border-2 border-app-purple-500 rounded-[2.5rem] p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-300 z-10">
         <input 
           autoFocus
-          className="bg-transparent text-white font-bold text-base w-full mb-4 outline-none border-b border-[#444] pb-2 focus:border-blue-500 transition-colors"
+          className="bg-transparent text-app-ink font-black text-xl w-full mb-6 outline-none border-b-2 border-app-surface pb-3 focus:border-app-purple-500 transition-all font-display tracking-tight"
           value={task.title}
           onChange={e => onUpdate({ ...task, title: e.target.value })}
-          placeholder="Project Title"
+          placeholder="NODE IDENTIFIER"
           onKeyDown={e => e.key === 'Enter' && setIsEditing(false)}
           onClick={e => e.stopPropagation()}
         />
-        <div className="flex gap-2 mb-4" onClick={e => e.stopPropagation()}>
+        <div className="flex flex-wrap gap-2.5 mb-6" onClick={e => e.stopPropagation()}>
           {Object.values(Priority).map((p) => (
             <button
               key={p}
@@ -108,12 +110,10 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
                 e.stopPropagation();
                 onUpdate({ ...task, priority: p });
               }}
-              className={`text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-tighter transition-all ${
+              className={`text-[10px] px-5 py-2.5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-sm ${
                 task.priority === p
-                  ? p === Priority.HIGH ? 'bg-red-500 text-white' :
-                    p === Priority.MEDIUM ? 'bg-orange-500 text-white' :
-                    'bg-blue-500 text-white'
-                  : 'bg-[#1a1a1a] text-notion-muted border border-[#444] hover:border-[#666]'
+                  ? 'bg-app-purple-600 text-white border border-app-purple-700'
+                  : 'bg-app-surface text-app-muted border border-app-border hover:bg-white'
               }`}
             >
               {p}
@@ -121,30 +121,30 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
           ))}
         </div>
         <textarea 
-          className="bg-[#1a1a1a] text-notion-muted text-sm w-full h-24 p-3 rounded-lg outline-none border border-[#444] focus:border-blue-500 transition-colors resize-none mb-4"
+          className="bg-app-surface text-app-ink text-sm w-full h-32 p-4 rounded-3xl outline-none border border-app-border focus:border-app-purple-500 transition-all resize-none mb-6 font-medium leading-relaxed"
           value={task.notes || ''}
           onChange={e => onUpdate({ ...task, notes: e.target.value })}
-          placeholder="Project description and notes..."
+          placeholder="System logs and detailed project nodes..."
           onClick={e => e.stopPropagation()}
         />
-        <div className="flex justify-between items-center" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center gap-4" onClick={e => e.stopPropagation()}>
           <button 
             onClick={(e) => {
               e.stopPropagation();
               onDelete();
             }} 
-            className="text-red-500/70 hover:text-red-500 text-xs font-bold uppercase tracking-wider hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-all"
+            className="text-rose-500 hover:text-rose-600 text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 px-6 py-3 rounded-2xl transition-all border border-transparent hover:border-rose-100"
           >
-            Delete
+            Purge
           </button>
           <button 
             onClick={(e) => {
               e.stopPropagation();
               setIsEditing(false);
             }} 
-            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all shadow-lg shadow-blue-600/20"
+            className="bg-app-ink hover:bg-app-purple-600 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl hover:shadow-app-purple-200"
           >
-            Save
+            Synchronize
           </button>
         </div>
       </div>
@@ -156,39 +156,45 @@ const ProjectCard = ({ task, onUpdate, onDelete, onDragStart }: { key?: string |
       draggable
       onDragStart={onDragStart}
       onClick={() => setIsEditing(true)}
-      className="bg-[#252525] border border-[#333] rounded-xl p-4 hover:border-[#555] transition-all cursor-pointer group shadow-sm hover:shadow-md relative"
+      className="bg-white border border-app-border rounded-[2.5rem] p-8 hover:border-app-purple-300 transition-all cursor-pointer group shadow-sm hover:shadow-2xl relative overflow-hidden active:scale-95"
     >
-      <div className="absolute left-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing">
-        <IconGripVertical className="w-4 h-4 text-notion-muted" />
+      <div className="absolute left-0 top-0 w-2 h-full bg-app-purple-500 opacity-20 group-hover:opacity-100 transition-opacity"></div>
+      
+      <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all p-2 bg-app-surface rounded-xl hover:bg-rose-50 hover:text-rose-500" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
+        <IconTrash className="w-4 h-4" />
       </div>
-      <div className="pl-4">
-        <div className="flex justify-between items-start mb-2">
-          <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors line-clamp-2">{task.title || 'Untitled Project'}</h4>
-          <div className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${
-            task.priority === Priority.HIGH ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
-            task.priority === Priority.MEDIUM ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20' :
-            'bg-blue-500/10 text-blue-500 border border-blue-500/20'
+
+      <div className="space-y-4">
+        <div className="flex justify-between items-start gap-4">
+          <div className="space-y-1 pr-6">
+            <h4 className="text-[17px] font-black text-app-ink group-hover:text-app-purple-600 transition-colors line-clamp-2 font-display tracking-tight leading-tight">{task.title || 'UNINITIALIZED NODE'}</h4>
+            <div className="text-[9px] font-black text-app-muted uppercase tracking-[0.2em]">Execution Cluster</div>
+          </div>
+          <div className={`text-[9px] px-3 py-1.5 rounded-xl font-black uppercase tracking-widest border ${
+            task.priority === Priority.HIGH ? 'bg-rose-50 text-rose-600 border-rose-100' :
+            task.priority === Priority.MEDIUM ? 'bg-amber-50 text-amber-600 border-amber-100' :
+            'bg-app-purple-50 text-app-purple-600 border-app-purple-100'
           }`}>
             {task.priority}
           </div>
         </div>
         
         {task.notes ? (
-          <p className="text-xs text-notion-muted line-clamp-3 mb-3 leading-relaxed">
+          <p className="text-sm text-app-muted line-clamp-3 leading-relaxed font-medium pt-2 border-t border-app-surface">
             {task.notes}
           </p>
         ) : (
-          <p className="text-xs text-notion-muted italic mb-3 opacity-50">No description added yet...</p>
+          <p className="text-xs text-app-muted italic opacity-40 font-medium">No auxiliary data logged...</p>
         )}
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#333]">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-            <span className="text-[10px] text-notion-muted font-medium uppercase tracking-widest">
-              {task.status === Status.TODO ? 'Idea' : task.status === Status.IN_PROGRESS ? 'In Progress' : 'Done'}
+        <div className="flex items-center justify-between mt-6 pt-5 border-t border-app-surface">
+          <div className="flex items-center gap-3">
+            <div className="w-2.5 h-2.5 rounded-full bg-app-purple-500 shadow-sm shadow-app-purple-200" />
+            <span className="text-[10px] text-app-ink font-black uppercase tracking-widest">
+              {task.status === Status.TODO ? 'Staging' : task.status === Status.IN_PROGRESS ? 'Active' : 'Archived'}
             </span>
           </div>
-          <span className="text-[10px] text-notion-muted opacity-50">
+          <span className="text-[10px] text-app-muted font-black uppercase tracking-widest tabular-nums bg-app-surface px-2.5 py-1 rounded-lg">
             {new Date(task.nextDue).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
           </span>
         </div>

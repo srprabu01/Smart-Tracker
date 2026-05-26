@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import { 
   format, 
   startOfMonth, 
@@ -15,7 +16,7 @@ import {
   differenceInDays
 } from 'date-fns';
 import { Task, Status, Priority, Frequency } from '../types';
-import { IconChevronLeft, IconChevronRight, IconRotateCcw } from './Icons';
+import { IconChevronLeft, IconChevronRight, IconRotateCcw, IconCalendar } from './Icons';
 import { getLocalToday, calculateNextDue } from './TaskTable';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -170,85 +171,87 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
   };
 
   return (
-    <div className="bg-[#191919] border border-notion-border rounded-xl overflow-hidden shadow-2xl">
+    <div className="bg-white border border-app-border rounded-[3rem] overflow-hidden shadow-sm mb-32">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between p-6 border-b border-notion-border bg-[#202020]">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-bold text-white">
-            {format(currentMonth, 'MMMM yyyy')}
-          </h2>
-          <button 
-            onClick={fetchGoogleEvents}
-            disabled={isLoadingEvents || !googleAccessToken}
-            className={`p-1.5 rounded-lg transition-colors ${
-              isLoadingEvents ? 'text-blue-500 animate-spin' : 'text-notion-muted hover:text-white hover:bg-notion-hover'
-            }`}
-            title="Sync Google Calendar"
-          >
-            <IconRotateCcw className="w-4 h-4" />
-          </button>
-          <div className="group relative">
-            <div className="w-4 h-4 rounded-full border border-notion-muted text-notion-muted flex items-center justify-center text-[10px] cursor-help">?</div>
-            <div className="absolute left-0 top-6 w-64 p-3 bg-[#252525] border border-notion-border rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-[60] text-[11px] text-notion-muted leading-relaxed">
-              <p className="mb-2 text-white font-medium">Why Firebase?</p>
-              <p>Firebase handles the secure "Login with Google" process. It provides the temporary access token needed to talk to the Google Calendar API directly from your browser. Your calendar data is <span className="text-white">never stored</span> in Firebase.</p>
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between p-10 border-b border-app-border bg-white gap-8">
+        <div className="flex items-center gap-6">
+          <div className="p-4 bg-app-purple-50 rounded-[1.5rem] border border-app-purple-100">
+             <IconCalendar className="w-8 h-8 text-app-purple-600" />
+          </div>
+          <div>
+            <h2 className="text-3xl font-black text-app-ink tracking-tight font-display">
+              {format(currentMonth, 'MMMM yyyy')}
+            </h2>
+            <div className="flex items-center gap-3 mt-1">
+              <button 
+                onClick={fetchGoogleEvents}
+                disabled={isLoadingEvents || !googleAccessToken}
+                className={`p-1 rounded-lg transition-all ${
+                  isLoadingEvents ? 'text-app-purple-500 animate-spin' : 'text-app-muted hover:text-app-purple-600'
+                }`}
+                title="Refresh Temporal Sync"
+              >
+                <IconRotateCcw className="w-4 h-4" />
+              </button>
+              <div className="h-4 w-px bg-app-border mx-1"></div>
+              <p className="text-[10px] font-black text-app-muted uppercase tracking-[0.2em]">Global Network Hub</p>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex flex-col sm:flex-row items-center gap-6">
           {calendarError ? (
-            <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 px-3 py-2 rounded-lg max-w-[500px]">
-              <span className="text-[10px] text-red-400 font-medium leading-normal" title={calendarError}>
-                {calendarError}
+            <div className="flex items-center gap-4 bg-rose-50 border border-rose-100 px-5 py-3 rounded-2xl">
+              <span className="text-[10px] text-rose-600 font-black uppercase tracking-widest leading-normal">
+                Connection Failed
               </span>
               <button 
                 onClick={onConnectGoogle}
-                className="text-[10px] bg-red-500 hover:bg-red-600 text-white font-bold px-2 py-1 rounded transition-colors whitespace-nowrap self-start mt-0.5"
+                className="text-[10px] bg-rose-500 hover:bg-rose-600 text-white font-black px-4 py-2 rounded-xl transition-all uppercase tracking-widest"
               >
-                Reconnect
+                Retry
               </button>
             </div>
           ) : !googleAccessToken ? (
-            <div className="flex flex-col items-end gap-1">
-              <button 
-                onClick={onConnectGoogle}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold py-1.5 px-3 rounded-lg transition-all border border-white/10"
-              >
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-3 h-3" />
-                Connect Google Calendar
-              </button>
-              <span className="text-[9px] text-notion-muted italic">Requires "Calendar Read" permission in popup</span>
-            </div>
+            <button 
+              onClick={onConnectGoogle}
+              className="flex items-center gap-3 bg-app-ink hover:bg-app-purple-600 text-white text-[10px] font-black uppercase tracking-[0.2em] py-4 px-8 rounded-2xl transition-all shadow-xl hover:shadow-app-purple-200"
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/layout/google.svg" alt="Google" className="w-4 h-4" />
+              Temporal Sync
+            </button>
           ) : (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-[10px] text-green-500 font-bold uppercase tracking-widest bg-green-500/10 px-2 py-1 rounded">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                Google Calendar Connected
+            <div className="flex items-center gap-6 bg-app-surface px-6 py-3 rounded-[1.5rem] border border-app-border">
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                <span className="text-[10px] text-app-ink font-black uppercase tracking-widest">Authorized</span>
               </div>
+              <div className="w-px h-4 bg-app-border"></div>
               <button 
                 onClick={onDisconnectGoogle}
-                className="text-[10px] text-notion-muted hover:text-red-400 transition-colors font-bold uppercase tracking-wider"
+                className="text-[10px] text-app-muted hover:text-rose-600 transition-colors font-black uppercase tracking-widest"
               >
-                Disconnect
+                Sever
               </button>
             </div>
           )}
-          <div className="flex items-center gap-2">
+          
+          <div className="flex items-center bg-app-surface p-1 rounded-2xl border border-app-border shadow-inner">
             <button 
               onClick={prevMonth}
-              className="p-2 hover:bg-notion-hover rounded-lg text-notion-muted hover:text-white transition-colors"
+              className="p-3 hover:bg-white rounded-xl text-app-muted hover:text-app-purple-600 transition-all hover:shadow-sm"
             >
               <IconChevronLeft className="w-5 h-5" />
             </button>
             <button 
               onClick={() => setCurrentMonth(new Date())}
-              className="px-3 py-1.5 text-sm font-medium text-notion-muted hover:text-white hover:bg-notion-hover rounded-lg transition-colors"
+              className="px-6 py-2 text-[10px] font-black text-app-ink uppercase tracking-widest hover:text-app-purple-600 transition-colors"
             >
               Today
             </button>
             <button 
               onClick={nextMonth}
-              className="p-2 hover:bg-notion-hover rounded-lg text-notion-muted hover:text-white transition-colors"
+              className="p-3 hover:bg-white rounded-xl text-app-muted hover:text-app-purple-600 transition-all hover:shadow-sm"
             >
               <IconChevronRight className="w-5 h-5" />
             </button>
@@ -257,16 +260,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
       </div>
 
       {/* Days Header */}
-      <div className="grid grid-cols-7 border-b border-notion-border bg-[#202020]/50">
+      <div className="grid grid-cols-7 bg-app-surface/50 border-b border-app-border">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="py-3 text-center text-[10px] font-bold text-notion-muted uppercase tracking-widest">
+          <div key={day} className="py-5 text-center text-[10px] font-black text-app-muted uppercase tracking-[0.3em]">
             {day}
           </div>
         ))}
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 auto-rows-[120px]">
+      <div className="grid grid-cols-7 auto-rows-[160px]">
         {calendarDays.map((day, idx) => {
           const dayTasks = getTasksForDay(day);
           const dayGoogleEvents = getGoogleEventsForDay(day);
@@ -276,44 +279,53 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
           return (
             <div 
               key={day.toString()} 
-              className={`border-r border-b border-notion-border p-2 transition-colors hover:bg-[#202020]/30 relative ${
-                !isCurrentMonth ? 'bg-[#151515]/50' : ''
-              }`}
+              className={`border-r border-b border-app-border p-4 transition-all hover:bg-app-purple-50/30 group relative ${
+                !isCurrentMonth ? 'bg-app-surface/20' : 'bg-white'
+              } ${idx % 7 === 6 ? 'border-r-0' : ''}`}
             >
-              <div className="flex justify-between items-start mb-1">
-                <span className={`text-xs font-medium ${
+              <div className="flex justify-between items-start mb-4">
+                <span className={`text-xs font-black tabular-nums transition-all ${
                   isToday 
-                    ? 'bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center -ml-1 -mt-1' 
-                    : isCurrentMonth ? 'text-gray-300' : 'text-gray-600'
+                    ? 'bg-app-purple-600 text-white w-8 h-8 rounded-xl flex items-center justify-center shadow-lg shadow-app-purple-200 -mt-1 -ml-1 scale-110' 
+                    : isCurrentMonth ? 'text-app-ink' : 'text-app-muted opacity-30'
                 }`}>
                   {format(day, 'd')}
                 </span>
+                {dayTasks.length + dayGoogleEvents.length > 0 && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-app-purple-400 opacity-50 group-hover:scale-150 transition-transform"></div>
+                )}
               </div>
               
-              <div className="space-y-1 overflow-y-auto max-h-[85px] custom-scrollbar">
+              <div className="space-y-1.5 overflow-y-auto max-h-[100px] pr-1 scrollbar-hide">
                 {/* Google Events */}
                 {dayGoogleEvents.map(event => (
                   <div 
                     key={event.id}
-                    className="text-[10px] px-1.5 py-0.5 rounded border border-blue-500/20 bg-blue-500/10 text-blue-300 truncate"
+                    className="text-[9px] font-black uppercase tracking-tighter px-2.5 py-1.5 rounded-lg border border-blue-100 bg-blue-50 text-blue-600 truncate shadow-sm"
                     title={`Google Event: ${event.summary}`}
                   >
-                    📅 {event.summary}
+                    {event.summary}
                   </div>
                 ))}
 
                 {/* Local Tasks */}
                 {dayTasks.map(task => (
-                  <div 
+                  <motion.div 
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
                     key={task.id}
                     onClick={() => handleToggleTask(task)}
-                    className={`text-[10px] px-1.5 py-0.5 rounded border truncate cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${getPriorityColor(task.priority)} ${
-                      task.status === Status.DONE ? 'opacity-40 grayscale' : ''
+                    className={`text-[9px] font-black uppercase tracking-tighter px-2.5 py-1.5 rounded-lg border truncate cursor-pointer transition-all hover:scale-[1.02] active:scale-95 shadow-sm ${
+                      task.priority === Priority.HIGH ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                      task.priority === Priority.MEDIUM ? 'bg-amber-50 text-amber-600 border-amber-100' :
+                      'bg-app-purple-50 text-app-purple-600 border-app-purple-100'
+                    } ${
+                      task.status === Status.DONE ? 'opacity-30 grayscale' : ''
                     }`}
                     title={task.title}
                   >
                     {task.title}
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>

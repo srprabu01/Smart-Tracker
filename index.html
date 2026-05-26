@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,23 +15,34 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
-        darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              notion: {
-                bg: '#191919',
-                sidebar: '#202020',
-                hover: '#2c2c2c',
-                border: '#373737',
-                text: '#d4d4d4',
-                muted: '#9b9b9b',
-                blue: '#2383e2',
-                blue_bg: '#1d282e',
+              app: {
+                bg: '#ffffff',
+                surface: '#fbfbff',
+                sidebar: '#f8f7ff',
+                hover: '#f3e8ff',
+                purple: {
+                  50: '#f5f3ff',
+                  100: '#ede9fe',
+                  200: '#ddd6fe',
+                  300: '#c4b5fd',
+                  400: '#a78bfa',
+                  500: '#8b5cf6',
+                  600: '#7c3aed',
+                  700: '#6d28d9',
+                  800: '#5b21b6',
+                  900: '#4c1d95',
+                },
+                ink: '#111111',
+                muted: '#6b7280',
+                border: '#e5e7eb',
               }
             },
             fontFamily: {
               sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+              display: ['Outfit', 'Inter', 'sans-serif'],
             }
           }
         }
@@ -39,22 +50,23 @@
     </script>
     <style>
       body {
-        background-color: #191919;
-        color: #d4d4d4;
+        background-color: #ffffff;
+        color: #111111;
+        font-family: 'Inter', sans-serif;
       }
       ::-webkit-scrollbar {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #191919;
+        background: #fafafa;
       }
       ::-webkit-scrollbar-thumb {
-        background: #373737;
-        border-radius: 5px;
+        background: #e5e5e5;
+        border-radius: 10px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #4d4d4d;
+        background: #d1d1d1;
       }
       .scrollbar-hide::-webkit-scrollbar {
         display: none;
@@ -63,6 +75,7 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
     </style>
   <script type="importmap">
 {

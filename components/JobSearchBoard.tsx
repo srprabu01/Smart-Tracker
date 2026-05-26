@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Task, Status, Priority, Frequency } from '../types';
 import { IconPlus, IconTrash, IconBriefcase, IconCalendar, IconCheckCircle } from './Icons';
 import { getLocalToday } from './TaskTable';
@@ -43,138 +44,117 @@ const JobSearchBoard: React.FC<JobSearchBoardProps> = ({ tasks, onUpdateTask, on
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8 px-4">
-      <div className="bg-[#202020] rounded-xl p-8 border border-[#333] mb-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-3 bg-blue-500/10 rounded-lg">
-            <IconBriefcase className="w-6 h-6 text-blue-400" />
+    <div className="max-w-4xl mx-auto py-12 px-2 pb-40">
+      <div className="bg-white rounded-[3rem] p-10 border border-app-border mb-12 shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
+          <div className="flex items-center gap-5">
+            <div className="p-4 bg-app-purple-50 rounded-[1.5rem] border border-app-purple-100 shadow-sm">
+              <IconBriefcase className="w-8 h-8 text-app-purple-600" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-black text-app-ink tracking-tight font-display">Carrier Terminal</h2>
+              <p className="text-app-muted text-[11px] font-black uppercase tracking-[0.2em] mt-1">Application velocity & consistency mapping</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white">Daily Job Tracker</h2>
-            <p className="text-sm text-notion-muted">Log your daily applications to stay consistent.</p>
+          <div className="flex bg-app-surface p-1 rounded-2xl border border-app-border">
+             <div className="px-6 py-2.5 text-[10px] font-black text-app-purple-700 uppercase tracking-widest bg-white rounded-xl shadow-sm border border-app-purple-100">Active Pipeline</div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 items-end bg-[#2a2a2a] p-6 rounded-lg border border-[#333]">
-          <div className="flex-1 w-full">
-            <label className="block text-[10px] font-bold text-notion-muted uppercase mb-2 tracking-wider">Date</label>
-            <div className="relative">
-              <IconCalendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-notion-muted" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end bg-app-surface p-8 rounded-[2.5rem] border border-app-border shadow-inner">
+          <div className="space-y-3">
+            <label className="block text-[10px] font-black text-app-muted uppercase tracking-[0.3em] ml-2">Temporal Marker</label>
+            <div className="relative group">
+              <IconCalendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-app-muted group-focus-within:text-app-purple-500 transition-colors" />
               <input 
                 type="date"
                 value={selectedDate}
                 onChange={e => setSelectedDate(e.target.value)}
-                className="w-full bg-[#1a1a1a] border border-[#444] rounded-md py-2 pl-10 pr-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
+                className="w-full bg-white border border-app-border rounded-2xl py-3.5 pl-12 pr-4 text-sm text-app-ink font-black focus:border-app-purple-500 outline-none transition-all shadow-sm"
               />
             </div>
           </div>
-          <div className="w-full sm:w-40">
-            <label className="block text-[10px] font-bold text-notion-muted uppercase mb-2 tracking-wider">Jobs Applied</label>
+          <div className="space-y-3">
+            <label className="block text-[10px] font-black text-app-muted uppercase tracking-[0.3em] ml-2">Node Quantity</label>
             <input 
               type="number"
-              placeholder="e.g. 5"
+              placeholder="0"
               value={newCount}
               onChange={e => setNewCount(e.target.value)}
-              className="w-full bg-[#1a1a1a] border border-[#444] rounded-md py-2 px-3 text-sm text-white focus:border-blue-500 outline-none transition-all"
+              className="w-full bg-white border border-app-border rounded-2xl py-3.5 px-6 text-sm text-app-ink font-black focus:border-app-purple-500 outline-none transition-all shadow-sm placeholder:text-app-muted/30"
             />
           </div>
           <button 
             onClick={handleAddLog}
             disabled={!newCount}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-md text-sm transition-all flex items-center justify-center gap-2"
+            className="w-full bg-app-ink hover:bg-app-purple-600 disabled:opacity-30 disabled:grayscale text-white font-black py-4 px-8 rounded-2xl text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-app-purple-200"
           >
-            <IconPlus className="w-4 h-4" /> Log Applications
+            <IconPlus className="w-5 h-5" /> Execute Log
           </button>
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-sm font-bold text-notion-muted uppercase tracking-widest px-1">Application History</h3>
+      <div className="space-y-8">
+        <div className="flex items-center justify-between px-6">
+           <h3 className="text-[11px] font-black text-app-ink uppercase tracking-[0.4em]">Protocol History</h3>
+           <div className="h-px bg-app-border flex-1 mx-8 opacity-50"></div>
+           <span className="text-[10px] font-black text-app-muted uppercase tracking-widest">{jobSearchTasks.length} Iterations</span>
+        </div>
+
         {jobSearchTasks.length === 0 ? (
-          <div className="text-center py-12 bg-[#1a1a1a] rounded-xl border border-dashed border-[#333]">
-            <p className="text-notion-muted text-sm italic">No applications logged yet. Start your journey today!</p>
+          <div className="text-center py-24 bg-white rounded-[3rem] border border-dashed border-app-border">
+            <div className="w-20 h-20 bg-app-surface rounded-3xl flex items-center justify-center mx-auto mb-6">
+               <IconBriefcase className="w-8 h-8 text-app-muted" />
+            </div>
+            <p className="text-app-muted text-sm font-black uppercase tracking-[0.2em]">No Carrier Data Visualized</p>
           </div>
         ) : (
-          <div className="bg-[#1a1a1a] rounded-xl border border-[#333] overflow-hidden">
-            {/* Desktop Table */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#252525] border-b border-[#333]">
-                    <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Date</th>
-                    <th className="py-4 px-6 text-[10px] font-bold text-notion-muted uppercase tracking-wider">Count</th>
-                    <th className="py-4 px-6 text-right text-[10px] font-bold text-notion-muted uppercase tracking-wider">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#333]">
-                  {jobSearchTasks.map(task => (
-                    <tr key={task.id} className="hover:bg-[#202020] transition-colors group">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                          <span className="text-sm font-medium text-white">
-                            {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
-                              weekday: 'short', 
-                              month: 'short', 
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </span>
-                          {task.nextDue === today && (
-                            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-white">{task.jobCount || 0}</span>
-                          <span className="text-xs text-notion-muted">applications</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button 
-                          onClick={() => onDeleteTask(task.id)}
-                          className="text-notion-muted hover:text-red-400 p-2 rounded-md hover:bg-red-400/10 transition-all opacity-0 group-hover:opacity-100"
-                        >
-                          <IconTrash className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="sm:hidden divide-y divide-[#333]">
-              {jobSearchTasks.map(task => (
-                <div key={task.id} className="p-4 flex justify-between items-center bg-[#1a1a1a]">
+          <div className="grid grid-cols-1 gap-4">
+            {jobSearchTasks.map(task => (
+              <motion.div 
+                layoutId={task.id}
+                key={task.id} 
+                className="bg-white rounded-[2.5rem] p-8 border border-app-border hover:border-app-purple-300 transition-all group shadow-sm hover:shadow-2xl flex flex-col sm:flex-row justify-between items-center gap-6"
+              >
+                <div className="flex items-center gap-6 w-full">
+                  <div className="p-4 bg-app-surface rounded-2xl border border-app-border group-hover:bg-app-purple-50 group-hover:border-app-purple-100 transition-colors">
+                     <IconCheckCircle className="w-6 h-6 text-emerald-500" />
+                  </div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                      <span className="text-sm font-medium text-white">
-                        {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric'
-                        })}
-                      </span>
-                      {task.nextDue === today && (
-                        <span className="text-[8px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-tighter">Today</span>
-                      )}
+                    <div className="flex items-center gap-3">
+                       <span className="text-lg font-black text-app-ink font-display tracking-tight leading-tight">
+                         {new Date(task.nextDue + 'T00:00:00').toLocaleDateString('en-US', { 
+                           weekday: 'long', 
+                           month: 'long', 
+                           day: 'numeric'
+                         })}
+                       </span>
+                       {task.nextDue === today && (
+                         <span className="text-[9px] bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg font-black uppercase tracking-widest border border-emerald-100">Live</span>
+                       )}
                     </div>
-                    <div className="text-xs text-notion-muted">
-                      <span className="font-bold text-white pr-1">{task.jobCount || 0}</span> applications
+                    <div className="text-[10px] font-black text-app-muted uppercase tracking-widest flex items-center gap-2">
+                       Temporal Node <span className="text-app-purple-600">#{task.id.slice(0, 4)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-app-surface pt-6 sm:pt-0">
+                  <div className="flex flex-col items-end">
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl font-black text-app-ink tabular-nums tracking-tighter">{task.jobCount || 0}</span>
+                      <div className="text-[10px] font-black text-app-muted uppercase tracking-widest leading-none text-right">Applied<br/>Protocols</div>
                     </div>
                   </div>
                   <button 
                     onClick={() => onDeleteTask(task.id)}
-                    className="text-notion-muted hover:text-red-400 p-2 rounded-md"
+                    className="p-3 text-app-muted hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all border border-transparent hover:border-rose-100"
                   >
-                    <IconTrash className="w-4 h-4" />
+                    <IconTrash className="w-5 h-5" />
                   </button>
                 </div>
-              ))}
-            </div>
+              </motion.div>
+            ))}
           </div>
         )}
       </div>

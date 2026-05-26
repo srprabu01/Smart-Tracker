@@ -94,20 +94,20 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
     return (
       <button 
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-sm font-medium transition-colors"
+        className="flex items-center gap-2 bg-app-purple-600 hover:bg-app-purple-700 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-app-purple-100 active:scale-95"
       >
         <IconPlus className="w-4 h-4" />
-        New
+        Commit Action
       </button>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-       <div className="bg-notion-sidebar border border-notion-border rounded-lg shadow-2xl w-full max-w-lg p-6">
-          <h2 className="text-lg font-semibold text-notion-text mb-4 flex items-center gap-2">
-            <IconSparkles className="w-5 h-5 text-purple-400" />
-            Smart Task Creation
+    <div className="fixed inset-0 bg-app-ink/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-300">
+       <div className="bg-white border border-app-border rounded-[2rem] shadow-2xl w-full max-w-lg p-8 animate-in zoom-in slide-in-from-bottom-8 duration-500">
+          <h2 className="text-2xl font-black text-app-ink mb-6 flex items-center gap-3 font-display">
+            <IconSparkles className="w-6 h-6 text-app-purple-500" />
+            Neural Engine
           </h2>
           <form onSubmit={handleSubmit}>
             <div className="relative">
@@ -115,20 +115,20 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
                   autoFocus
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="e.g., 'Read 10 pages of a book every night starting today high priority' or use the mic."
-                  className="w-full bg-notion-bg border border-notion-border rounded p-3 text-notion-text focus:outline-none focus:border-blue-500 resize-none h-32 mb-4 placeholder-gray-600 pr-10"
+                  placeholder="e.g., 'Synchronize neural link with glute development phase 1 starting 0800 hours'"
+                  className="w-full bg-app-surface border border-app-border rounded-2xl p-4 text-app-ink focus:outline-none focus:border-app-purple-400 focus:ring-4 focus:ring-app-purple-50 resize-none h-40 mb-6 placeholder-app-muted font-bold transition-all pr-12"
                 />
                 <button
                     type="button"
                     onClick={toggleRecording}
-                    className={`absolute bottom-6 right-3 p-2 rounded-full transition-colors ${
+                    className={`absolute bottom-10 right-4 p-3 rounded-xl transition-all shadow-lg ${
                         isRecording 
-                        ? 'bg-red-500 text-white animate-pulse' 
+                        ? 'bg-rose-500 text-white animate-pulse scale-110 shadow-rose-200' 
                         : isTranscribing 
-                            ? 'bg-gray-700 text-gray-400 cursor-wait' 
-                            : 'bg-[#2c2c2c] text-gray-400 hover:text-white'
+                            ? 'bg-slate-100 text-app-muted cursor-wait' 
+                            : 'bg-white text-app-muted hover:text-app-purple-500 border border-app-border shadow-sm'
                     }`}
-                    title={isRecording ? "Stop recording" : "Transcribe audio"}
+                    title={isRecording ? "Stop Capture" : "Audio Synthesis"}
                     disabled={isTranscribing}
                 >
                     <IconWaveform className="w-4 h-4" />
@@ -139,23 +139,26 @@ const SmartTaskInput: React.FC<SmartTaskInputProps> = ({ onAddTask }) => {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors"
+                className="px-6 py-3 text-xs font-black uppercase tracking-widest text-app-muted hover:text-app-ink transition-colors"
               >
-                Cancel
+                Abort
               </button>
               <button
                 type="submit"
                 disabled={loading || isRecording || isTranscribing}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50"
+                className="flex items-center gap-3 bg-app-purple-600 hover:bg-app-purple-500 text-white px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-app-purple-200 transition-all active:scale-95 disabled:opacity-50"
               >
-                {loading ? 'Thinking...' : isTranscribing ? 'Transcribing...' : 'Create Task'}
-                {!loading && !isTranscribing && <IconSparkles className="w-3 h-3" />}
+                {loading ? 'Synthesizing...' : isTranscribing ? 'Decoding...' : 'Initialize'}
+                {!loading && !isTranscribing && <IconSparkles className="w-3.5 h-3.5" />}
               </button>
             </div>
           </form>
-          <p className="text-xs text-gray-500 mt-4">
-            Powered by Gemini. Describe your task naturally, or speak to transcribe.
-          </p>
+          <div className="mt-8 pt-6 border-t border-app-border flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-app-purple-400 animate-pulse"></div>
+            <p className="text-[10px] text-app-muted font-black uppercase tracking-widest">
+              Gemini Protocol v1.4 Active
+            </p>
+          </div>
        </div>
     </div>
   );
