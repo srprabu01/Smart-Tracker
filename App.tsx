@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocFromServer } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, deleteDoc, doc, writeBatch, getDocFromServer, getDocs } from 'firebase/firestore';
 import { auth, db, signInWithGoogle, signInWithGoogleRedirect, logout, googleProvider, handleFirestoreError, OperationType } from './firebase';
 import { signInWithPopup, GoogleAuthProvider, getRedirectResult } from 'firebase/auth';
 import TaskTable, { getLocalToday } from './components/TaskTable';
@@ -444,6 +444,35 @@ const App: React.FC = () => {
     );
   }
 
+  const handleWipeData = async () => {
+    if (!effectiveUser) return;
+    if (window.confirm('Are you absolutely sure you want to delete ALL your tasks? This cannot be undone.')) {
+      try {
+        if (isGuest) {
+          localStorage.removeItem('guest_tasks');
+          setTasks(currentTasks => {
+            // Keep guest initialization empty
+            return [];
+          });
+          alert('All guest tasks successfully deleted.');
+          return;
+        }
+
+        const q = query(collection(db, 'tasks'), where('uid', '==', effectiveUser.uid));
+        const snapshot = await getDocs(q);
+        const batch = writeBatch(db);
+        snapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        alert('All tasks successfully deleted.');
+      } catch (error) {
+        console.error('Failed to wipe data', error);
+        alert('Failed to delete data. See console for details.');
+      }
+    }
+  };
+
   const handleLogout = () => {
     setGoogleAccessToken(null);
     localStorage.removeItem('google_access_token');
@@ -466,7 +495,8 @@ const App: React.FC = () => {
         )}
         <div className="flex flex-col -space-y-0.5">
           <span className="text-[10px] font-black text-app-ink leading-tight hidden sm:inline">{effectiveUser.displayName}</span>
-          <button onClick={handleLogout} className="text-[9px] text-app-muted hover:text-red-500 font-black uppercase tracking-tighter transition-colors text-left">Disconnect</button>
+          <button onClick={handleWipeData} className="text-[9px] text-red-500 hover:text-red-700 font-black uppercase tracking-tighter transition-colors text-left mb-0.5">Wipe Data</button>
+          <button onClick={handleLogout} className="text-[9px] text-app-muted hover:text-app-ink font-black uppercase tracking-tighter transition-colors text-left">Disconnect</button>
         </div>
       </div>
       <header className="px-4 md:px-12 pt-8 md:pt-16">
