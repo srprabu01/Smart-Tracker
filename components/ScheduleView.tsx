@@ -125,7 +125,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
 
   const { scheduledTasks, maxTracks } = useMemo(() => {
     const items = tasks
-      .filter(t => t.scheduledTime && t.nextDue === selectedDate && !t.isFitness && !t.isWeeklyTracker && !t.isGrocery && !t.isJobSearch && !t.isProject && !t.isBucketlist)
+      .filter(t => t.scheduledTime && t.nextDue === selectedDate && !t.isFitness && !t.isWeeklyTracker && !t.isBuyList && !t.isJobSearch && !t.isProject && !t.isBucketlist)
       .map(t => ({ ...t, ...localTaskOverrides[t.id] }));
 
     // Calculate tracks for overlapping tasks
@@ -155,7 +155,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({
   }, [tasks, selectedDate, localTaskOverrides]);
 
   const unscheduledTasks = useMemo(() => {
-    return tasks.filter(t => !t.scheduledTime && t.status !== Status.DONE && !t.isFitness && !t.isWeeklyTracker && !t.isGrocery && !t.isJobSearch && !t.isProject && !t.isBucketlist);
+    return tasks.filter(t => !t.scheduledTime && t.status !== Status.DONE && !t.isFitness && !t.isWeeklyTracker && !t.isBuyList && !t.isJobSearch && !t.isProject && !t.isBucketlist);
   }, [tasks]);
 
   const handleDragStart = (task: Task) => {

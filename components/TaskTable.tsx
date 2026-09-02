@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Task, Status, Priority, Frequency, SortOption, FitnessCategory } from '../types';
+import { Task, Status, Priority, Frequency, SortOption, FitnessCategory, BuyListCategory } from '../types';
 import { IconFileText, IconTrash, IconPlus, IconSort, IconGripVertical } from './Icons';
 
 export const formatDate = (dateString: string) => {
@@ -15,6 +15,22 @@ export const getLocalToday = () => {
   const offset = d.getTimezoneOffset() * 60000;
   const local = new Date(d.getTime() - offset);
   return local.toISOString().split('T')[0];
+};
+
+export const getTaskCompletionUpdates = (task: Task, today: string): Partial<Task> => {
+  let updates: Partial<Task> = { status: Status.DONE };
+  if (task.lastCompleted !== today) {
+    if (task.nextDue && task.nextDue < today) {
+      updates.streak = 1;
+    } else {
+      updates.streak = (task.streak || 0) + 1;
+    }
+    updates.lastCompleted = today;
+  }
+  if (task.frequency !== Frequency.ONCE) {
+    updates.nextDue = calculateNextDue(task.frequency, today);
+  }
+  return updates;
 };
 
 export const calculateNextDue = (frequency: Frequency, baseDateStr: string): string => {
@@ -84,6 +100,14 @@ export const TAG_STYLES: Record<string, string> = {
   [FitnessCategory.SNOWBOARD]: 'bg-cyan-50 text-cyan-600',
   [FitnessCategory.DAILY]: 'bg-emerald-50 text-emerald-600',
   [FitnessCategory.OTHERS]: 'bg-slate-50 text-slate-500',
+  
+  [BuyListCategory.GROCERY]: 'bg-emerald-50 text-emerald-600',
+  [BuyListCategory.TRAVEL]: 'bg-blue-50 text-blue-600',
+  [BuyListCategory.HOBBY]: 'bg-purple-50 text-purple-600',
+  [BuyListCategory.ESSENTIALS]: 'bg-amber-50 text-amber-600',
+  [BuyListCategory.FITNESS]: 'bg-rose-50 text-rose-600',
+  [BuyListCategory.BEAUTY_CARE]: 'bg-pink-50 text-pink-600',
+  
   'None': 'text-app-muted bg-transparent border border-app-border',
 };
 
@@ -95,6 +119,7 @@ interface TaskTableProps {
   onSortChange: (sorts: SortOption[]) => void;
   onDeleteTask: (taskId: string) => void;
   onAddTask: (status: Status, title: string) => void;
+  categories?: string[];
 }
 
 const SelectDropdown = ({ value, options, onChange, onClose }: { value: string; options: string[]; onChange: (val: string) => void; onClose: () => void; }) => {
@@ -162,7 +187,7 @@ const PriorityBadge = ({ priority }: { priority: string }) => {
   );
 };
 
-const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTasks, sortConfig, onSortChange, onDeleteTask, onAddTask }) => {
+const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTasks, sortConfig, onSortChange, onDeleteTask, onAddTask, categories }) => {
   const [quickAddTitle, setQuickAddTitle] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -219,13 +244,7 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
     const today = getLocalToday();
     let updates: Partial<Task> = { status: newStatus };
     if (newStatus === Status.DONE) {
-      if (task.lastCompleted !== today) {
-        updates.streak = (task.streak || 0) + 1;
-        updates.lastCompleted = today;
-      }
-      if (task.frequency !== Frequency.ONCE) {
-        updates.nextDue = calculateNextDue(task.frequency, today);
-      }
+      updates = getTaskCompletionUpdates(task, today);
     }
     onUpdateTask({ ...task, ...updates });
   };
@@ -280,6 +299,11 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
             <th onClick={() => handleHeaderClick('priority')} className="py-4 px-4 w-[120px] md:w-[130px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
               <div className="flex items-center gap-2">Priority <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
+            {categories && (
+              <th onClick={() => handleHeaderClick('category')} className="py-4 px-4 w-[140px] md:w-[160px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
+                <div className="flex items-center gap-2">Category <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
+              </th>
+            )}
             <th onClick={() => handleHeaderClick('nextDue')} className="py-4 px-4 w-[150px] md:w-[170px] font-black uppercase text-[10px] tracking-[0.2em] border-l border-app-border cursor-pointer hover:bg-app-surface transition-colors group">
               <div className="flex items-center gap-2">Due <IconSort className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity" /></div>
             </th>
@@ -319,6 +343,9 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
               <td className="py-3.5 px-4 border-l border-app-border/40"><StatusCell task={task} onChange={(s) => handleStatusChange(task, s)} /></td>
               <td className="py-3.5 px-4 border-l border-app-border/40"><TagCell value={task.frequency} options={Object.values(Frequency)} onChange={(v) => onUpdateTask({ ...task, frequency: v as Frequency })} /></td>
               <td className="py-3.5 px-4 border-l border-app-border/40"><TagCell value={task.priority} options={Object.values(Priority)} onChange={(v) => onUpdateTask({ ...task, priority: v as Priority })} /></td>
+              {categories && (
+                <td className="py-3.5 px-4 border-l border-app-border/40"><TagCell value={task.category || 'None'} options={['None', ...categories]} onChange={(v) => onUpdateTask({ ...task, category: v === 'None' ? undefined : v })} /></td>
+              )}
               <td className="py-3.5 px-4 border-l border-app-border/40">
                 <input 
                   type="date" 
@@ -363,7 +390,7 @@ const TaskTable: React.FC<TaskTableProps> = ({ tasks, onUpdateTask, onReorderTas
             </tr>
           ))}
           <tr className="border-b border-app-border/40 group">
-             <td colSpan={10} className="p-0">
+             <td colSpan={categories ? 11 : 10} className="p-0">
                 <div className="flex items-center px-4 py-4 gap-4 text-app-muted hover:bg-app-surface transition-colors cursor-text">
                    <IconPlus className="w-5 h-5 text-app-purple-400" />
                    <input 

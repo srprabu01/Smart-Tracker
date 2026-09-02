@@ -16,7 +16,9 @@ import CalendarView from './components/CalendarView';
 import ScheduleView from './components/ScheduleView';
 import ZoraAssistant from './components/ZoraAssistant';
 import ErrorBoundary from './components/ErrorBoundary';
-import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory } from './types';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { Task, Status, Priority, Frequency, ViewType, SortOption, FitnessCategory, BuyListCategory } from './types';
 import { 
   IconCheckSquare, 
   IconList, 
@@ -210,7 +212,7 @@ const App: React.FC = () => {
       priority: newTaskData.priority || Priority.MEDIUM,
       nextDue: newTaskData.nextDue || today,
       isFitness: newTaskData.isFitness || false,
-      isGrocery: newTaskData.isGrocery || false,
+      isBuyList: newTaskData.isBuyList || false,
       isJobSearch: newTaskData.isJobSearch || false,
       isProject: newTaskData.isProject || false,
       isBucketlist: newTaskData.isBucketlist || false,
@@ -318,13 +320,13 @@ const App: React.FC = () => {
     if (!matchesSearch) return false;
 
     const isFitness = task.isFitness;
-    const isGrocery = task.isGrocery;
+    const isBuyList = task.isBuyList;
     const isJobSearch = task.isJobSearch;
     const isProject = task.isProject;
     const isBucketlist = task.isBucketlist;
 
     if (view === 'Analytics') return true;
-    if (view === 'Grocery Run') return task.isGrocery;
+    if (view === 'Buy List') return task.isBuyList;
     if (view === 'Fitness') return task.isFitness;
     if (view === 'Job Search') return task.isJobSearch;
     if (view === 'Projects') return task.isProject;
@@ -332,7 +334,7 @@ const App: React.FC = () => {
     
     // In "All Tasks" and "By Status", we hide special categories to keep the list clean
     if (view === 'All Tasks' || view === 'By Status') {
-       return !task.isFitness && !task.isGrocery && !task.isJobSearch && !task.isProject && !task.isBucketlist && !task.isWeeklyTracker;
+       return !task.isFitness && !task.isBuyList && !task.isJobSearch && !task.isProject && !task.isBucketlist && !task.isWeeklyTracker;
     }
     
     return true;
@@ -484,19 +486,23 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-app-bg text-app-ink font-sans pb-40 relative selection:bg-app-purple-200">
+      <OfflineIndicator />
       {/* User Profile in Top Right Corner */}
-      <div className="absolute top-4 right-4 md:top-8 md:right-12 flex items-center gap-3 bg-white border border-app-border rounded-full pr-4 pl-1.5 py-1.5 z-50 shadow-sm">
-        {effectiveUser.photoURL ? (
-          <img src={effectiveUser.photoURL} alt={effectiveUser.displayName || ''} className="w-7 h-7 rounded-full shadow-sm" />
-        ) : (
-          <div className="w-7 h-7 rounded-full bg-app-purple-600 flex items-center justify-center text-[11px] font-black text-white uppercase shadow-sm">
-            {effectiveUser.displayName?.charAt(0) || 'G'}
+      <div className="absolute top-4 right-4 md:top-8 md:right-12 flex items-center gap-3 z-50">
+        <PWAInstallButton />
+        <div className="flex items-center gap-3 bg-white border border-app-border rounded-full pr-4 pl-1.5 py-1.5 shadow-sm">
+          {effectiveUser.photoURL ? (
+            <img src={effectiveUser.photoURL} alt={effectiveUser.displayName || ''} className="w-7 h-7 rounded-full shadow-sm" />
+          ) : (
+            <div className="w-7 h-7 rounded-full bg-app-purple-600 flex items-center justify-center text-[11px] font-black text-white uppercase shadow-sm">
+              {effectiveUser.displayName?.charAt(0) || 'G'}
+            </div>
+          )}
+          <div className="flex flex-col -space-y-0.5">
+            <span className="text-[10px] font-black text-app-ink leading-tight hidden sm:inline">{effectiveUser.displayName}</span>
+            <button onClick={handleWipeData} className="text-[9px] text-red-500 hover:text-red-700 font-black uppercase tracking-tighter transition-colors text-left mb-0.5">Wipe Data</button>
+            <button onClick={handleLogout} className="text-[9px] text-app-muted hover:text-app-ink font-black uppercase tracking-tighter transition-colors text-left">Disconnect</button>
           </div>
-        )}
-        <div className="flex flex-col -space-y-0.5">
-          <span className="text-[10px] font-black text-app-ink leading-tight hidden sm:inline">{effectiveUser.displayName}</span>
-          <button onClick={handleWipeData} className="text-[9px] text-red-500 hover:text-red-700 font-black uppercase tracking-tighter transition-colors text-left mb-0.5">Wipe Data</button>
-          <button onClick={handleLogout} className="text-[9px] text-app-muted hover:text-app-ink font-black uppercase tracking-tighter transition-colors text-left">Disconnect</button>
         </div>
       </div>
       <header className="px-4 md:px-12 pt-8 md:pt-16">
@@ -559,7 +565,7 @@ const App: React.FC = () => {
               { label: 'Projects', icon: IconLightbulb },
               { label: 'Job Search', icon: IconBriefcase },
               { label: 'Fitness', icon: IconDumbbell },
-              { label: 'Grocery Run', icon: IconShoppingCart },
+              { label: 'Buy List', icon: IconShoppingCart },
               { label: 'Bucketlist', icon: IconHeart },
               { label: 'Analytics', icon: IconBarChart },
             ].map((v) => (
@@ -610,41 +616,41 @@ const App: React.FC = () => {
             onAddTask={(t) => {
               let finalTask = { ...t };
               // If we're in a specific view, force the flag
-              if (view === 'Grocery Run') {
-                finalTask.isGrocery = true;
+              if (view === 'Buy List') {
+                finalTask.isBuyList = true;
                 finalTask.isFitness = false;
               } else if (view === 'Fitness') {
                 finalTask.isFitness = true;
-                finalTask.isGrocery = false;
+                finalTask.isBuyList = false;
                 finalTask.isJobSearch = false;
                 finalTask.category = finalTask.category || FitnessCategory.DAILY;
               } else if (view === 'Job Search') {
                 finalTask.isJobSearch = true;
                 finalTask.isFitness = false;
-                finalTask.isGrocery = false;
+                finalTask.isBuyList = false;
                 finalTask.isProject = false;
               } else if (view === 'Projects') {
                 finalTask.isProject = true;
                 finalTask.isJobSearch = false;
                 finalTask.isFitness = false;
-                finalTask.isGrocery = false;
+                finalTask.isBuyList = false;
               } else if (view === 'Bucketlist') {
                 finalTask.isBucketlist = true;
                 finalTask.isProject = false;
                 finalTask.isJobSearch = false;
                 finalTask.isFitness = false;
-                finalTask.isGrocery = false;
+                finalTask.isBuyList = false;
               } else {
                 // In other views, infer from the parsed data
                 // If Gemini found reps or isHomeWorkout, it's likely a fitness task
                 const isLikelyFitness = !!t.reps || !!t.isHomeWorkout || t.title.toLowerCase().includes('workout') || t.title.toLowerCase().includes('exercise');
-                const isLikelyGrocery = t.title.toLowerCase().includes('buy') || t.title.toLowerCase().includes('grocery') || t.title.toLowerCase().includes('shop');
+                const isLikelyBuyList = t.title.toLowerCase().includes('buy') || t.title.toLowerCase().includes('grocery') || t.title.toLowerCase().includes('shop') || t.title.toLowerCase().includes('purchase');
                 const isLikelyJobSearch = t.title.toLowerCase().includes('job') || t.title.toLowerCase().includes('apply') || t.title.toLowerCase().includes('interview') || !!t.company;
                 const isLikelyProject = t.title.toLowerCase().includes('project') || t.title.toLowerCase().includes('idea') || t.title.toLowerCase().includes('build');
                 const isLikelyBucketlist = t.title.toLowerCase().includes('bucket') || t.title.toLowerCase().includes('dream') || t.title.toLowerCase().includes('life goal') || t.title.toLowerCase().includes('wanna');
                 
                 finalTask.isFitness = isLikelyFitness;
-                finalTask.isGrocery = isLikelyGrocery;
+                finalTask.isBuyList = isLikelyBuyList;
                 finalTask.isJobSearch = isLikelyJobSearch;
                 finalTask.isProject = isLikelyProject;
                 finalTask.isBucketlist = isLikelyBucketlist;
@@ -662,15 +668,26 @@ const App: React.FC = () => {
 
       <main className="px-4 md:px-12">
         {view === 'By Status' ? (
-           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isFitness: false, isGrocery: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} />
+           <KanbanBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(s) => handleAddTask({ title: 'New Task', status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isFitness: false, isBuyList: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} />
+        ) : view === 'Buy List' ? (
+           <TaskTable 
+             tasks={filteredTasks} 
+             onUpdateTask={handleUpdateTask} 
+             onReorderTasks={handleReorderTasks}
+             sortConfig={sortConfig} 
+             onSortChange={setSortConfig} 
+             onDeleteTask={handleDeleteTask} 
+             onAddTask={(s, title) => handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isBuyList: true, isJobSearch: false, isProject: false, isBucketlist: false, isFitness: false })} 
+             categories={Object.values(BuyListCategory)}
+           />
         ) : view === 'Fitness' ? (
-           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat, isFitness: true, isGrocery: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} onReorderTasks={handleReorderTasks} />
+           <FitnessBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(cat) => handleAddTask({ title: 'New Exercise', status: Status.TODO, frequency: Frequency.DAILY, priority: Priority.MEDIUM, nextDue: today, category: cat, isFitness: true, isBuyList: false, isJobSearch: false })} onDeleteTask={handleDeleteTask} onReorderTasks={handleReorderTasks} />
         ) : view === 'Job Search' ? (
-           <JobSearchBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isJobSearch: true, isFitness: false, isGrocery: false, isProject: false })} onDeleteTask={handleDeleteTask} />
+           <JobSearchBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isJobSearch: true, isFitness: false, isBuyList: false, isProject: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Projects' ? (
-           <ProjectsBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isProject: true, isJobSearch: false, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
+           <ProjectsBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isProject: true, isJobSearch: false, isFitness: false, isBuyList: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Bucketlist' ? (
-           <BucketlistBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isBucketlist: true, isProject: false, isJobSearch: false, isFitness: false, isGrocery: false })} onDeleteTask={handleDeleteTask} />
+           <BucketlistBoard tasks={filteredTasks} onUpdateTask={handleUpdateTask} onAddTask={(t) => handleAddTask({ ...t, isBucketlist: true, isProject: false, isJobSearch: false, isFitness: false, isBuyList: false })} onDeleteTask={handleDeleteTask} />
         ) : view === 'Analytics' ? (
             <AnalyticsDashboard tasks={tasks} />
         ) : view === 'Calendar' ? (
@@ -699,11 +716,11 @@ const App: React.FC = () => {
              onDeleteTask={handleDeleteTask} 
              onAddTask={(s, title) => {
                const currentView = view as string;
-               const isGrocery = currentView === 'Grocery Run';
+               const isBuyList = currentView === 'Buy List';
                const isJobSearch = currentView === 'Job Search';
                const isProject = currentView === 'Projects';
                const isBucketlist = currentView === 'Bucketlist';
-               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isGrocery, isJobSearch, isProject, isBucketlist, isFitness: false });
+               handleAddTask({ title, status: s, frequency: Frequency.ONCE, priority: Priority.MEDIUM, nextDue: today, isBuyList, isJobSearch, isProject, isBucketlist, isFitness: false });
              }} 
            />
         )}

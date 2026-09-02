@@ -27,6 +27,16 @@ export enum FitnessCategory {
   OTHERS = 'Others'
 }
 
+export enum BuyListCategory {
+  GROCERY = 'Grocery',
+  TRAVEL = 'Travel',
+  HOBBY = 'Hobby',
+  ESSENTIALS = 'Essentials',
+  FITNESS = 'Fitness',
+  BEAUTY_CARE = 'Beauty Care',
+  OTHERS = 'Others'
+}
+
 export interface Task {
   id: string;
   uid: string;
@@ -40,7 +50,7 @@ export interface Task {
   category?: string; // Optional category for grouping
   order?: number; // For manual drag and drop sorting
   isFitness?: boolean; // Explicit flag for fitness tasks
-  isGrocery?: boolean; // Explicit flag for grocery tasks
+  isBuyList?: boolean; // Explicit flag for buy list tasks
   isJobSearch?: boolean; // Explicit flag for job search tasks
   isProject?: boolean; // Explicit flag for project tasks
   isBucketlist?: boolean; // Explicit flag for bucket list items
@@ -72,4 +82,4 @@ export interface SortOption {
   direction: 'asc' | 'desc';
 }
 
-export type ViewType = 'All Tasks' | 'Grocery Run' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Bucketlist' | 'Analytics' | 'Calendar' | 'Schedule';
+export type ViewType = 'All Tasks' | 'Buy List' | 'By Status' | 'Fitness' | 'Job Search' | 'Projects' | 'Bucketlist' | 'Analytics' | 'Calendar' | 'Schedule';

@@ -2,6 +2,8 @@ import React from 'react';
 import { Task, Status, Priority, Frequency } from '../types';
 import { IconPlus, IconTrash, IconHeart, IconRotateCcw, IconCheckCircle, IconLink } from './Icons';
 
+import { getLocalToday, getTaskCompletionUpdates } from './TaskTable';
+
 interface BucketlistBoardProps {
   tasks: Task[];
   onUpdateTask: (task: Task) => void;
@@ -29,7 +31,11 @@ const BucketlistBoard: React.FC<BucketlistBoardProps> = ({ tasks, onUpdateTask, 
     const taskId = e.dataTransfer.getData('taskId');
     const task = tasks.find(t => t.id === taskId);
     if (task && task.status !== status) {
-      onUpdateTask({ ...task, status });
+      let updates: Partial<Task> = { status };
+      if (status === Status.DONE) {
+        updates = getTaskCompletionUpdates(task, getLocalToday());
+      }
+      onUpdateTask({ ...task, ...updates });
     }
   };
 

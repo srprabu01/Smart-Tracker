@@ -16,7 +16,7 @@
         "category": { "type": "string" },
         "order": { "type": "number" },
         "isFitness": { "type": "boolean" },
-        "isGrocery": { "type": "boolean" },
+        "isBuyList": { "type": "boolean" },
         "isJobSearch": { "type": "boolean" },
         "isProject": { "type": "boolean" },
         "reps": { "type": "string" },

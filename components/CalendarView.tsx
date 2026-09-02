@@ -17,7 +17,7 @@ import {
 } from 'date-fns';
 import { Task, Status, Priority, Frequency } from '../types';
 import { IconChevronLeft, IconChevronRight, IconRotateCcw, IconCalendar } from './Icons';
-import { getLocalToday, calculateNextDue } from './TaskTable';
+import { getLocalToday, calculateNextDue, getTaskCompletionUpdates } from './TaskTable';
 import firebaseConfig from '../firebase-applet-config.json';
 
 interface GoogleEvent {
@@ -149,13 +149,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
     let updates: Partial<Task> = { status: newStatus };
     
     if (newStatus === Status.DONE) {
-      if (task.lastCompleted !== today) {
-        updates.streak = (task.streak || 0) + 1;
-        updates.lastCompleted = today;
-      }
-      if (task.frequency !== Frequency.ONCE) {
-        updates.nextDue = calculateNextDue(task.frequency, today);
-      }
+      updates = getTaskCompletionUpdates(task, today);
     }
     
     onUpdateTask({ ...task, ...updates });
@@ -259,17 +253,20 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
         </div>
       </div>
 
-      {/* Days Header */}
-      <div className="grid grid-cols-7 bg-app-surface/50 border-b border-app-border">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="py-5 text-center text-[10px] font-black text-app-muted uppercase tracking-[0.3em]">
-            {day}
+      <div className="overflow-x-auto scrollbar-hide pb-20 -mx-4 md:mx-0">
+        <div className="min-w-[800px]">
+          {/* Days Header */}
+          <div className="grid grid-cols-7 bg-app-surface/50 border-b border-app-border">
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              <div key={day} className="py-5 text-center text-[10px] font-black text-app-muted uppercase tracking-[0.3em]">
+                {day}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 auto-rows-[160px]">
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7 auto-rows-[160px]">
+
         {calendarDays.map((day, idx) => {
           const dayTasks = getTasksForDay(day);
           const dayGoogleEvents = getGoogleEventsForDay(day);
@@ -332,6 +329,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ tasks, onUpdateTask, google
           );
         })}
       </div>
+      </div>
+    </div>
     </div>
   );
 };

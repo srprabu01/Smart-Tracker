@@ -19,7 +19,7 @@ service cloud.firestore {
     //   - category: string (optional)
     //   - order: number (optional)
     //   - isFitness: boolean (optional)
-    //   - isGrocery: boolean (optional)
+    //   - isBuyList: boolean (optional)
     //   - isJobSearch: boolean (optional)
     //   - isProject: boolean (optional)
     //   - reps: string (optional)

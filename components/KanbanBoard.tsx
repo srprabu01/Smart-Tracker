@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Task, Status, Priority, Frequency } from '../types.ts';
-import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue } from './TaskTable.tsx';
+import { TAG_STYLES, formatDate, getLocalToday, calculateNextDue, getTaskCompletionUpdates } from './TaskTable';
 import { IconTrash } from './Icons.tsx';
 import { Activity } from 'lucide-react';
 
@@ -135,14 +135,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({ tasks, onUpdateTask, onAddTas
     let updates: Partial<Task> = { status: newStatus };
 
     if (newStatus === Status.DONE) {
-      if (task.lastCompleted !== today) {
-        updates.streak = (task.streak || 0) + 1;
-        updates.lastCompleted = today;
-      }
-      
-      if (task.frequency !== Frequency.ONCE) {
-        updates.nextDue = calculateNextDue(task.frequency, today);
-      }
+      updates = getTaskCompletionUpdates(task, today);
     }
 
     onUpdateTask({ ...task, ...updates });

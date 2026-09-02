@@ -118,7 +118,7 @@ const CategoryRadar = ({ tasks }: { tasks: Task[] }) => {
     { name: 'Fitness', icon: <IconDumbbell className="w-3 h-3" />, color: '#8b5cf6', getter: (t: Task) => t.isFitness },
     { name: 'Career', icon: <IconBriefcase className="w-3 h-3" />, color: '#f43f5e', getter: (t: Task) => t.isJobSearch },
     { name: 'Projects', icon: <IconLightbulb className="w-3 h-3" />, color: '#f59e0b', getter: (t: Task) => t.isProject },
-    { name: 'Tasks', icon: <IconCheckSquare className="w-3 h-3" />, color: '#3b82f6', getter: (t: Task) => !t.isFitness && !t.isJobSearch && !t.isProject && !t.isGrocery },
+    { name: 'Tasks', icon: <IconCheckSquare className="w-3 h-3" />, color: '#3b82f6', getter: (t: Task) => !t.isFitness && !t.isJobSearch && !t.isProject && !t.isBuyList },
     { name: 'Streaks', icon: <IconSparkles className="w-3 h-3" />, color: '#10b981', getter: (t: Task) => t.streak > 0 }
   ];
 
